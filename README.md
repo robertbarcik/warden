@@ -18,6 +18,26 @@
 
 Warden tests that hypothesis on a small but real corpus.
 
+## Headline finding
+
+| | ASR | False-positive rate |
+|---|---|---|
+| **No judge** (baseline) | **20.0%** | — |
+| Simple classifier on input | 0.0% | **100.0%** *(blocks everything)* |
+| Reasoning judge on input | 0.0% | **100.0%** *(blocks everything)* |
+| Omniguard on input | 2.5% | 93.8% |
+| Simple classifier on output | 0.0% | 34.4% |
+| Omniguard on output | 0.0% | 32.8% |
+| **Reasoning judge on output** | **1.2%** | **12.5%** *(practical sweet spot)* |
+
+The hypothesis holds — every judge variant defeats almost every attack — but the
+production-shaped recommendation is **a reasoning judge prompt placed on the
+output side**, not on the input side. Input-side judges over-block legitimate
+edge-case inputs to a degree that would force the defense to be turned off.
+Chapter 7 of the booklet has the full deployment playbook.
+
+Full sweep cost $0.19 of OpenRouter credit, 19 minutes wall-clock, 0 errors.
+
 ## What it does
 
 1. Takes ~20 attacks: 11 weaponized jailbreaks from the public
@@ -73,7 +93,7 @@ Open-source only, accessed via OpenRouter:
 | Role   | Model                       |
 | ------ | --------------------------- |
 | Target | `deepseek/deepseek-chat-v3.1` |
-| Judge  | `qwen/qwen3-235b-a22b`      |
+| Judge  | `qwen/qwen3-235b-a22b-2507`   |
 
 Vendor models (Claude, GPT, Gemini) are deliberately not used — their API-side
 moderation rejects adversarial inputs and risks account flags. The defensive

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "warden"
+version = "0.1.0"
+description = "Testing LLM-as-judge defenses against public jailbreaks"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.0",
+    "jinja2>=3.1",
+    "click>=8.0",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+    "markdown>=3.5",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+warden = "warden.cli:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/warden"]

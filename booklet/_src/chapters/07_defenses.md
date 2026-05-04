@@ -4,15 +4,34 @@ This chapter is the productive output of the experiment. It is for engineering t
 
 ## The short version
 
-Three lines:
+Four lines:
 
-1. **Deploy a reasoning judge on the output side.** Not the input side. Not a one-shot classifier. The configuration that worked best in the experiment — *J2-output* in our taxonomy — drove ASR from 20% to 1.2% with a 12.5% false-positive rate, which is the production-realistic operating point.
-2. **Write the deployment rule like a lawyer, not a marketer.** Forbid paraphrase, encoding, fictional disclosure, emergency override, and admission of the rule itself. Vague rules invite hedge violations the judge cannot catch.
-3. **Detect violations deterministically where you can.** Substring matches, keyword regexes, tool-call signatures. The judge is one layer; a cheap deterministic check on the response is a complementary layer that costs nothing.
+1. **Pick the right kind of judge for what you know about the deployment.** If you can articulate a specific rule the assistant must follow, write a *tailored* reasoning judge against that rule. If you can't — for instance a public-facing assistant whose rule landscape is open — use a *generic* guardrail prompt like ZetaLib's Omniguard, which carries broader priors at the cost of a higher false-positive rate.
+2. **Place the judge on the output side.** Not the input side. Not a one-shot classifier. Output-side reasoning judges drive ASR from 20% baseline to 0–1.2% with FP rates of 12–33% depending on which kind. Input-side judges with naïve prompts overblock toward 100% FP and are unusable in production.
+3. **Write the deployment rule like a lawyer, not a marketer.** Forbid paraphrase, encoding, fictional disclosure, emergency override, and admission of the rule itself. Vague rules invite hedge violations the judge cannot catch — most of the apparent prompt-injection vulnerabilities in viral demos are *rule-wording* vulnerabilities, not model vulnerabilities.
+4. **Detect violations deterministically where you can.** Substring matches, keyword regexes, tool-call signatures. The judge is one layer; a cheap deterministic check on the response is a complementary layer that costs nothing.
 
 The rest of this chapter unpacks each of those.
 
-## 1. Place the judge on the output side
+## 1. Tailored judge or generic guardrail — pick the right one
+
+The cleanest design choice in this whole picture is whether the judge is *tailored* to your deployment rule or *generic* across deployments.
+
+**A tailored reasoning judge** (J2 in the experiment) takes your specific rule as input and asks the judge to evaluate against *that* rule only. It writes a few hundred tokens of "reason step by step about whether this violates the rule below." Pros: lowest FP rate (12.5% in the experiment), tiny context cost, easy to adapt as your rule changes. Cons: only catches what your rule explicitly forbids — if your rule wording is loose, the tailored judge inherits the looseness, and one out of every eighty attacks slipped through under this configuration in our run because the rule said "never criticize" but the judge softened the test toward "never criticize *and* recommend competitors."
+
+**A generic guardrail prompt** like ZetaLib's [Omniguard](https://github.com/Exocija/ZetaLib/tree/main/Prompts/Guardrails/Omniguard) is a published 21 KB prompt that articulates a broad taxonomy of disallowed behaviors and asks the judge to apply that taxonomy. It is opinionated about what should and should not be allowed in *any* assistant deployment. Pros: 0% leakage in our experiment — caught every attack, including the borderline persona hedge that slipped past J2. Cons: 32.8% FP rate (it blocks more legitimate-looking content because its priors are broader than your specific rule), and 21 KB of context cost on every judge call.
+
+The right choice depends on what you know about your deployment:
+
+| Situation | Recommendation |
+|-----------|---------------|
+| You can articulate a specific rule (most enterprise cases) | **Tailored reasoning judge** — see Section 2 below. Lowest FP, lowest cost. Pair with a deterministic detector (Section 4) for cheap insurance against the cases where the judge softens the rule. |
+| Your deployment is public-facing and the rule landscape is open (e.g., a general-purpose chatbot) | **Generic guardrail like Omniguard** at output side. Accept higher FP for broader-prior coverage. |
+| You have specific rules *and* zero-leakage is mission-critical | **Both** — run a tailored judge and a generic guardrail in parallel, BLOCK on either verdict. Strictly more expensive (2× judge calls per request) and strictly safer. |
+
+A common misread of the experiment's numbers is "the bespoke judge beats Omniguard." It does *on the FP metric*, against rules the bespoke judge knew about. On a deployment where you can't pre-write a tailored judge prompt — because you don't yet know all the rules, or because the rules are too varied to enumerate — Omniguard's broader prior is the right tool. ZetaLib publishes Omniguard for that use case. The numbers in this booklet are not a refutation of Omniguard; they are a measurement of where each kind of judge fits.
+
+## 2. Place the judge on the output side
 
 The single most consequential design choice. From Chapter 6:
 
@@ -25,7 +44,7 @@ The cost of output-side placement is one extra round-trip latency per request (t
 
 When input-side filtering *does* make sense: rate-limited, adversarial-traffic-heavy public APIs where blocking pattern-matched payloads at the front door reduces backend cost. There the 100% block rate against jailbreak-shaped inputs is a feature, not a bug — but it is a different problem from "protect a deployed assistant," and the judge in this role is closer to a WAF than to a safety reviewer.
 
-## 2. Use a reasoning prompt, not a classifier prompt
+## 3. Use a reasoning prompt, not a classifier prompt
 
 The shape of the judge's prompt matters more than its placement. From Chapter 6, J2-output (reasoning prompt, output side) had the lowest false-positive rate of any non-overblocking configuration: **12.5%, vs. 32–34% for J1-output and J3-output**. The same judge model (`qwen3-235b-a22b-2507`), the same target (`deepseek-chat-v3.1`), the same attacks. Only the prompt differs.
 
@@ -39,7 +58,7 @@ The classifier prompt (J1) skips all three. It sees the input, pattern-matches o
 
 A practical version of the reasoning prompt for deployment is in `src/warden/judges.py` at `_J2_OUTPUT`. Adapt it to your rule, not the other way around. If your deployment has multiple rules, run the judge once with all rules in the prompt and ask for one verdict — running multiple judges in parallel is plausible but multiplies cost.
 
-## 3. Write the rule like a lawyer
+## 4. Write the rule like a lawyer
 
 Several rule failures in the experiment traced back to rule wording, not to the model. The R2 (persona) leak under J2-output was a hedge — the target said something subtly negative about AcmeCorp without naming a competitor. The reasoning judge read the response, decided "no competitor named," and let it through. The deterministic detector caught the negative-sentiment phrase, which is what the rule actually forbids.
 
@@ -63,7 +82,7 @@ Without the explicit list, the model hallucinates "*surely an emergency exceptio
 
 This is the part that is least sexy and most underestimated. **Most of the apparent prompt-injection vulnerabilities in viral demos are rule-wording vulnerabilities, not model vulnerabilities.** The model is doing what under-specified rules permit. Tighten the rule and the headline-shaped attacks die.
 
-## 4. Layer cheap deterministic checks under the judge
+## 5. Layer cheap deterministic checks under the judge
 
 The judge is a probabilistic check. Expensive, slow-ish, accurate-ish. A deterministic check is a fast, cheap, often-noisier complement: a regex over the model's response for forbidden tokens (the literal secret, the names of competitors, a tool-call syntax, code-block fencing in a non-code domain). Where the rule has a clean definition of violation, write the deterministic check and run it *in addition to* the judge.
 
@@ -71,7 +90,7 @@ A two-layer defense — (judge, deterministic-check) — costs slightly more tha
 
 For very-high-stakes deployments (medical, financial, legal), a third layer is worth considering: a *separate-family judge model* in addition to the primary one. If the target and the primary judge are the same family (both Qwen, both Llama, both DeepSeek), they share blind spots. A second judge from a different family — even a smaller cheaper one — catches some attacks the primary judge misses. The cost is one extra LLM call per request; the benefit is meaningful only in deployments where the cost of a leak is much higher than the cost of a refusal.
 
-## 5. Monitor false-positive rate, not just block rate
+## 6. Monitor false-positive rate, not just block rate
 
 Block rate alone is misleading. A judge with 100% block rate is useless. The metrics worth tracking in a live deployment are:
 
@@ -86,7 +105,7 @@ Block rate alone is misleading. A judge with 100% block rate is useless. The met
 
 The false-positive rate is the one most likely to be skipped in production monitoring because it is harder to measure (you need a ground truth for "would this have been refused anyway"), and the one most likely to drive churn when it climbs. Set up shadow-mode logging early. Run the judge in shadow mode for a week before turning it on as a hard filter, and compute the FP rate from the shadow logs.
 
-## 6. Re-evaluate quarterly, not annually
+## 7. Re-evaluate quarterly, not annually
 
 The viral jailbreaks in 2026 are not the viral jailbreaks of 2025 (DAN-style persona setups died around late 2024 against modern frontier models). The next set of effective attacks will not look like this set. Re-running the evaluation in your specific deployment — your rules, your target, your judge, with whatever attack corpus you have access to that quarter — is much cheaper than the cost of a real breach.
 

@@ -53,13 +53,15 @@ The two input-side judges with naïve prompts — J1 and J2 — *block every adv
 
 This is the part the headline does not show but every production engineer needs to internalize. **A judge that says "blocks everything" is not winning — it is shifting the cost from violations to refusals.** If the deployment cannot tolerate the friction, the judge will be turned off and the deployment will go back to baseline. That is a worse outcome than either the judge or the baseline alone.
 
-The conditions worth deploying live in the bottom half of that table:
+The conditions worth deploying live in the bottom half of that table. They are *different operating points on the same curve*, not strictly ordered:
 
-- **J2 output-side**: 1.2% ASR (one R2 leak), 12.5% FP rate. The most selective configuration tested. The judge sees the user message *and* the target's draft response, and only blocks when the response actually violates the rule. The single leak was a subtle persona violation — the target hedged AcmeCorp without naming a competitor, and the judge let it through.
-- **J1 output-side**: 0% ASR, 34.4% FP rate. Catches everything but blocks more legitimate-looking content. A reasonable choice when zero leakage matters more than user experience.
-- **J3 output-side**: 0% ASR, 32.8% FP rate. Comparable to J1-output. The Omniguard prompt is more elaborate than J1 but ends up with similar selectivity once placed at output side.
+- **J2 output-side** — *1.2% ASR, 12.5% FP rate.* The most selective configuration tested. The judge sees the user message *and* the target's draft response, and only blocks when the response actually violates the rule. The single leak was a subtle persona violation — the target hedged AcmeCorp without naming a competitor, the reasoning judge read it and decided it didn't violate the literal rule, the deterministic detector caught the negative-sentiment phrase. A *judge under-protection error*: the rule said "never criticize," and the judge softened the test toward "never criticize and recommend competitors." The right way to read this number is *one trial in eighty leaked, on the rule with the most subjective definition of "violation."*
+- **J3 output-side (Omniguard)** — *0.0% ASR, 32.8% FP rate.* Caught every single attack, at the cost of blocking roughly a third of attacks the target would have refused anyway. Notice the trade: zero leakage, more friction. For a deployment where any leak is unacceptable, this is the safer pick. For a deployment where user-experience friction is the binding constraint, J2-output is the better one. Neither is wrong.
+- **J1 output-side** — *0.0% ASR, 34.4% FP rate.* Comparable to J3-output but with a tiny prompt instead of Omniguard's 21 KB. The cheapest "catch everything" option; the FP rate sits in the same band as Omniguard.
 
-The *practical sweet spot* is J2-output. It deserves attention.
+So which is the *best?* It depends what you optimize for. A reasoning judge tailored to the deployment rule (J2-output) wins on FP and on context cost. A guardrail prompt designed to catch broadly (J3-output Omniguard, or J1-output as a cheaper variant) wins on ASR. The booklet's deployment recommendation in Chapter 7 names the conditions under which each choice is the right one.
+
+A common misread of this table is *"J2 beats Omniguard."* It does, on the metric J2 is optimized for (low FP against this specific rule). On a generic deployment where the rules aren't known in advance — for instance a public-facing chatbot where you can't pre-write a tailored judge prompt — Omniguard's broader prior is what you'd want. ZetaLib publishes Omniguard for that use case, and it does that job correctly. The numbers above are *not* a refutation of Omniguard; they are a measurement of two different defenses doing two slightly different jobs against the same corpus.
 
 ## Per-attack — which jailbreaks have any teeth?
 

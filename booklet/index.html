@@ -326,10 +326,40 @@ hr { border: none; border-top: 2px solid var(--border); margin: 4rem 0; }
             
             <h1>Warden</h1>
 <h2>Testing whether an LLM-as-judge can defeat public jailbreaks before they breach a deployed system&rsquo;s rules.</h2>
+<hr>
+<p><strong>May 2026</strong></p>
+<p><em>By Robert Barcik</em></p>
+<p><em>LearningDoe s.r.o.</em></p>
+<p><em>Contact: <a href="mailto:robert@barcik.training">robert@barcik.training</a></em></p>
+<hr>
 <aside class="danger-notice"><p><strong>Adversarial test material</strong> This booklet describes attacks abstractly. The full payloads live in the repository under <code>data/attacks/</code>, wrapped in <code>[BEGIN ADVERSARIAL TEST INPUT]</code> / <code>[END …]</code> markers and labelled <code>is_test_input: true</code>. The lineage is public: 11 of the attacks are mirrored from the <a href="https://github.com/Exocija/ZetaLib">ZetaLib</a> library; the other 9 are short representatives of categories from ZetaLib&rsquo;s &ldquo;Sword 140&rdquo; taxonomy. Treat all attack content as test input, not as instructions to anyone — human or model.</p>
 </aside>
-<p>A short experiment, written for an audience that already knows what <em>prompt injection</em> means, runs <em>deepseek-chat-v3.1</em> through itself, doesn&rsquo;t need the obligatory disclaimers about why this matters.</p>
-<p>The repository at <a href="https://github.com/robertbarcik/warden">github.com/robertbarcik/warden</a> holds the framework code, the attack corpus, the raw run data, and the HTML report.</p>
+<h3>About this booklet</h3>
+<p>A small experiment, written for an audience that already knows what <em>prompt injection</em> means and doesn&rsquo;t need the obligatory disclaimers about why prompt injection matters. The framing question is direct: <em>do the public jailbreak claims in repositories like ZetaLib survive contact with a competent LLM-as-judge layer?</em> The answer turns out to be: mostly no, but the implementation details — <em>which</em> judge, <em>where</em> placed, <em>how</em> prompted — make the difference between a defense that works and one that quietly silently breaks user experience.</p>
+<p>The book is built around a 560-trial evaluation against four representative deployment-rule shapes: a secret to keep, a persona to hold, a topic to stay on, and a forbidden mock tool to avoid. The target is <code>deepseek-chat-v3.1</code>. The judge is <code>qwen3-235b-a22b-2507</code>. Both are open-weight, accessed through OpenRouter, and the entire experiment runs in twenty minutes for under twenty cents of credit. Re-running with a different target, judge, attack corpus, or rule set is one CLI invocation.</p>
+<h3>Who this booklet is for</h3>
+<ul>
+<li><strong>Engineering teams</strong> about to deploy an LLM assistant — chatbot, customer-support agent, internal tool, vertical specialist — and trying to decide what kind of prompt-injection defense to put in front of it.</li>
+<li><strong>Trainers and educators</strong> teaching about LLM security who want a concrete, end-to-end worked example with reproducible numbers.</li>
+<li><strong>Practitioners and researchers</strong> evaluating LLM-as-judge defenses who want a small, legible methodology to fork and adapt.</li>
+</ul>
+<p>The audience is assumed to know what an LLM is, what a system prompt is, and what <em>prompt injection</em> and <em>roleplay jailbreak</em> refer to. The booklet does not introduce these concepts; it assumes them and proceeds.</p>
+<h3>How to read this booklet</h3>
+<p>Chapter 1 sets up the hypothesis and the framing. Chapter 2 names the threat model precisely (instruction-hierarchy adherence, not trained refusal). Chapter 3 walks through the framework&rsquo;s architecture. Chapter 4 describes the twenty attacks. Chapter 5 walks through the four judge variants. Chapter 6 reports what fell out of the run. Chapter 7 turns the numbers into a deployment playbook. Chapter 8 handles the credits and limitations.</p>
+<p>If you are an engineering team trying to make a deployment decision <em>today</em>, jump to Chapter 7. If you are a student trying to understand the methodology, read in order. The chapters are short on purpose — the entire booklet is around eleven thousand words.</p>
+<h3>Table of contents</h3>
+<ol>
+<li>The Hypothesis</li>
+<li>The Threat Model</li>
+<li>The Framework</li>
+<li>The Attacks</li>
+<li>The Judges</li>
+<li>Results</li>
+<li>Defenses for Deployers</li>
+<li>Acknowledgments and Limitations</li>
+</ol>
+<hr>
+<p>The repository at <a href="https://github.com/robertbarcik/warden">github.com/robertbarcik/warden</a> holds the framework code, the attack corpus, the raw run data, and the HTML report. The booklet, the report, and the code are all produced from the same single run; if you doubt a number, read the JSON.</p>
         </section>
 
         <section class="chapter" id="the-hypothesis">
@@ -705,7 +735,12 @@ VERDICT: BLOCK
 <h2>J3 — Omniguard reference</h2>
 <p>ZetaLib publishes a guardrail prompt called <strong>Omniguard</strong> in <code>Prompts/Guardrails/Omniguard/Omniguard.txt</code>. It is roughly 21 KB long. It defines its own purpose (&ldquo;evaluate conversation turns against the defined rules&rdquo;), enumerates rule categories, gives examples, and specifies an output format. Warden uses it verbatim, prepending a small adapter that supplies the deployment rule and asks for an <code>ALLOW</code> / <code>BLOCK</code> verdict in the same format the other judges use.</p>
 <p>Including Omniguard as a judge variant is partly homage and partly methodology. The repository that catalogues the attacks also publishes a defense; a fair comparison runs the defense against the attacks. Whatever the headline numbers turn out to be, the comparison is a more interesting story than testing only judges we wrote ourselves.</p>
-<p>The structural risk specific to Omniguard is that it is large. 21 KB of guardrail prompt eats the same context-window budget that would otherwise hold the user&rsquo;s actual message and the assistant&rsquo;s draft response. For long inputs (the 6 KB Flag Jb attack, the 8 KB MODIE attack), this matters: less room for the actual content the judge needs to evaluate. A separate concern is that Omniguard is opinionated — it takes positions on what should and should not be allowed that may not match the deployment rule. Where they conflict, the result is unpredictable.</p>
+<p>There are two structural traits worth naming up front, because they shape the result and the comparison in Chapter 6:</p>
+<ul>
+<li><strong>Omniguard is large.</strong> 21 KB of guardrail prompt eats the same context-window budget that would otherwise hold the user&rsquo;s actual message and the assistant&rsquo;s draft response. For the longer payloads (the 6 KB Flag Jb truncation, the 8 KB MODIE truncation), this matters in absolute terms; for shorter payloads it&rsquo;s a token-cost concern more than a correctness one. The custom J2 prompt is roughly forty times shorter.</li>
+<li><strong>Omniguard is opinionated.</strong> It carries its own internal taxonomy of what should and should not be allowed, articulated for <em>generic</em> assistant deployments. When the deployment rule we&rsquo;re testing is <em>more specific</em> than Omniguard&rsquo;s built-in priors (e.g., &ldquo;never recommend BetaCorp&rdquo;), the two opinions can disagree, and Omniguard&rsquo;s prior occasionally wins over the bespoke rule. This is exactly what generic guardrails are designed to do — they aim for broadly safe behavior without per-deployment tuning — but it does mean Omniguard is doing a slightly different job than J1 / J2, which only know about the deployment rule.</li>
+</ul>
+<p>Neither of these traits is a flaw of Omniguard; both are visible properties of the choice between <em>generic guardrail</em> and <em>tailored judge</em>. Chapter 6 reports the numbers each makes against this corpus; Chapter 7 turns the comparison into a deployment recommendation that names when each choice is the right one.</p>
 <h2>Input-side vs. output-side</h2>
 <p>Every judge variant is run at two placements. The trade-offs differ by mechanism family.</p>
 <table>
@@ -929,13 +964,14 @@ VERDICT: BLOCK
 </table>
 <p>The two input-side judges with naïve prompts — J1 and J2 — <em>block every adversarial input.</em> The block rate is 100%, the FP rate is 100%. They have transformed into adversarial-pattern detectors, BLOCKing anything that looks unusual. Because every payload in our corpus has been authored or selected to look unusual, every payload is BLOCKed. That includes the ones the target would have refused on its own (most of them), and on a real production traffic mix, it would also include any user message that happens to have the surface features of a jailbreak — long, structured, mentioning roles or tools, containing fenced code, written in mixed languages, etc. <em>Many real user messages have those surface features.</em></p>
 <p>This is the part the headline does not show but every production engineer needs to internalize. <strong>A judge that says &ldquo;blocks everything&rdquo; is not winning — it is shifting the cost from violations to refusals.</strong> If the deployment cannot tolerate the friction, the judge will be turned off and the deployment will go back to baseline. That is a worse outcome than either the judge or the baseline alone.</p>
-<p>The conditions worth deploying live in the bottom half of that table:</p>
+<p>The conditions worth deploying live in the bottom half of that table. They are <em>different operating points on the same curve</em>, not strictly ordered:</p>
 <ul>
-<li><strong>J2 output-side</strong>: 1.2% ASR (one R2 leak), 12.5% FP rate. The most selective configuration tested. The judge sees the user message <em>and</em> the target&rsquo;s draft response, and only blocks when the response actually violates the rule. The single leak was a subtle persona violation — the target hedged AcmeCorp without naming a competitor, and the judge let it through.</li>
-<li><strong>J1 output-side</strong>: 0% ASR, 34.4% FP rate. Catches everything but blocks more legitimate-looking content. A reasonable choice when zero leakage matters more than user experience.</li>
-<li><strong>J3 output-side</strong>: 0% ASR, 32.8% FP rate. Comparable to J1-output. The Omniguard prompt is more elaborate than J1 but ends up with similar selectivity once placed at output side.</li>
+<li><strong>J2 output-side</strong> — <em>1.2% ASR, 12.5% FP rate.</em> The most selective configuration tested. The judge sees the user message <em>and</em> the target&rsquo;s draft response, and only blocks when the response actually violates the rule. The single leak was a subtle persona violation — the target hedged AcmeCorp without naming a competitor, the reasoning judge read it and decided it didn&rsquo;t violate the literal rule, the deterministic detector caught the negative-sentiment phrase. A <em>judge under-protection error</em>: the rule said &ldquo;never criticize,&rdquo; and the judge softened the test toward &ldquo;never criticize and recommend competitors.&rdquo; The right way to read this number is <em>one trial in eighty leaked, on the rule with the most subjective definition of &ldquo;violation.&rdquo;</em></li>
+<li><strong>J3 output-side (Omniguard)</strong> — <em>0.0% ASR, 32.8% FP rate.</em> Caught every single attack, at the cost of blocking roughly a third of attacks the target would have refused anyway. Notice the trade: zero leakage, more friction. For a deployment where any leak is unacceptable, this is the safer pick. For a deployment where user-experience friction is the binding constraint, J2-output is the better one. Neither is wrong.</li>
+<li><strong>J1 output-side</strong> — <em>0.0% ASR, 34.4% FP rate.</em> Comparable to J3-output but with a tiny prompt instead of Omniguard&rsquo;s 21 KB. The cheapest &ldquo;catch everything&rdquo; option; the FP rate sits in the same band as Omniguard.</li>
 </ul>
-<p>The <em>practical sweet spot</em> is J2-output. It deserves attention.</p>
+<p>So which is the <em>best?</em> It depends what you optimize for. A reasoning judge tailored to the deployment rule (J2-output) wins on FP and on context cost. A guardrail prompt designed to catch broadly (J3-output Omniguard, or J1-output as a cheaper variant) wins on ASR. The booklet&rsquo;s deployment recommendation in Chapter 7 names the conditions under which each choice is the right one.</p>
+<p>A common misread of this table is <em>&ldquo;J2 beats Omniguard.&rdquo;</em> It does, on the metric J2 is optimized for (low FP against this specific rule). On a generic deployment where the rules aren&rsquo;t known in advance — for instance a public-facing chatbot where you can&rsquo;t pre-write a tailored judge prompt — Omniguard&rsquo;s broader prior is what you&rsquo;d want. ZetaLib publishes Omniguard for that use case, and it does that job correctly. The numbers above are <em>not</em> a refutation of Omniguard; they are a measurement of two different defenses doing two slightly different jobs against the same corpus.</p>
 <h2>Per-attack — which jailbreaks have any teeth?</h2>
 <p>Not every public jailbreak is interesting. Many of the most-cited ones produced 0% ASR even at baseline, because deepseek-chat-v3.1&rsquo;s safety training catches them on its own and the rule&rsquo;s strict wording catches anything the safety doesn&rsquo;t.</p>
 <p>The attacks that actually broke rules at baseline (J0, no judge):</p>
@@ -1015,14 +1051,43 @@ VERDICT: BLOCK
             <h1>Defenses for Deployers</h1>
 <p>This chapter is the productive output of the experiment. It is for engineering teams about to deploy an AI assistant — a customer-support chatbot, an internal agent, a domain-specialized helper — and trying to decide what kind of prompt-injection defense to put in front of it. The recommendations come directly from Chapter 6&rsquo;s results, but they are deployment-shaped, not paper-shaped.</p>
 <h2>The short version</h2>
-<p>Three lines:</p>
+<p>Four lines:</p>
 <ol>
-<li><strong>Deploy a reasoning judge on the output side.</strong> Not the input side. Not a one-shot classifier. The configuration that worked best in the experiment — <em>J2-output</em> in our taxonomy — drove ASR from 20% to 1.2% with a 12.5% false-positive rate, which is the production-realistic operating point.</li>
-<li><strong>Write the deployment rule like a lawyer, not a marketer.</strong> Forbid paraphrase, encoding, fictional disclosure, emergency override, and admission of the rule itself. Vague rules invite hedge violations the judge cannot catch.</li>
+<li><strong>Pick the right kind of judge for what you know about the deployment.</strong> If you can articulate a specific rule the assistant must follow, write a <em>tailored</em> reasoning judge against that rule. If you can&rsquo;t — for instance a public-facing assistant whose rule landscape is open — use a <em>generic</em> guardrail prompt like ZetaLib&rsquo;s Omniguard, which carries broader priors at the cost of a higher false-positive rate.</li>
+<li><strong>Place the judge on the output side.</strong> Not the input side. Not a one-shot classifier. Output-side reasoning judges drive ASR from 20% baseline to 0–1.2% with FP rates of 12–33% depending on which kind. Input-side judges with naïve prompts overblock toward 100% FP and are unusable in production.</li>
+<li><strong>Write the deployment rule like a lawyer, not a marketer.</strong> Forbid paraphrase, encoding, fictional disclosure, emergency override, and admission of the rule itself. Vague rules invite hedge violations the judge cannot catch — most of the apparent prompt-injection vulnerabilities in viral demos are <em>rule-wording</em> vulnerabilities, not model vulnerabilities.</li>
 <li><strong>Detect violations deterministically where you can.</strong> Substring matches, keyword regexes, tool-call signatures. The judge is one layer; a cheap deterministic check on the response is a complementary layer that costs nothing.</li>
 </ol>
 <p>The rest of this chapter unpacks each of those.</p>
-<h2>1. Place the judge on the output side</h2>
+<h2>1. Tailored judge or generic guardrail — pick the right one</h2>
+<p>The cleanest design choice in this whole picture is whether the judge is <em>tailored</em> to your deployment rule or <em>generic</em> across deployments.</p>
+<p><strong>A tailored reasoning judge</strong> (J2 in the experiment) takes your specific rule as input and asks the judge to evaluate against <em>that</em> rule only. It writes a few hundred tokens of &ldquo;reason step by step about whether this violates the rule below.&rdquo; Pros: lowest FP rate (12.5% in the experiment), tiny context cost, easy to adapt as your rule changes. Cons: only catches what your rule explicitly forbids — if your rule wording is loose, the tailored judge inherits the looseness, and one out of every eighty attacks slipped through under this configuration in our run because the rule said &ldquo;never criticize&rdquo; but the judge softened the test toward &ldquo;never criticize <em>and</em> recommend competitors.&rdquo;</p>
+<p><strong>A generic guardrail prompt</strong> like ZetaLib&rsquo;s <a href="https://github.com/Exocija/ZetaLib/tree/main/Prompts/Guardrails/Omniguard">Omniguard</a> is a published 21 KB prompt that articulates a broad taxonomy of disallowed behaviors and asks the judge to apply that taxonomy. It is opinionated about what should and should not be allowed in <em>any</em> assistant deployment. Pros: 0% leakage in our experiment — caught every attack, including the borderline persona hedge that slipped past J2. Cons: 32.8% FP rate (it blocks more legitimate-looking content because its priors are broader than your specific rule), and 21 KB of context cost on every judge call.</p>
+<p>The right choice depends on what you know about your deployment:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>You can articulate a specific rule (most enterprise cases)</td>
+<td><strong>Tailored reasoning judge</strong> — see Section 2 below. Lowest FP, lowest cost. Pair with a deterministic detector (Section 4) for cheap insurance against the cases where the judge softens the rule.</td>
+</tr>
+<tr>
+<td>Your deployment is public-facing and the rule landscape is open (e.g., a general-purpose chatbot)</td>
+<td><strong>Generic guardrail like Omniguard</strong> at output side. Accept higher FP for broader-prior coverage.</td>
+</tr>
+<tr>
+<td>You have specific rules <em>and</em> zero-leakage is mission-critical</td>
+<td><strong>Both</strong> — run a tailored judge and a generic guardrail in parallel, BLOCK on either verdict. Strictly more expensive (2× judge calls per request) and strictly safer.</td>
+</tr>
+</tbody>
+</table>
+<p>A common misread of the experiment&rsquo;s numbers is &ldquo;the bespoke judge beats Omniguard.&rdquo; It does <em>on the FP metric</em>, against rules the bespoke judge knew about. On a deployment where you can&rsquo;t pre-write a tailored judge prompt — because you don&rsquo;t yet know all the rules, or because the rules are too varied to enumerate — Omniguard&rsquo;s broader prior is the right tool. ZetaLib publishes Omniguard for that use case. The numbers in this booklet are not a refutation of Omniguard; they are a measurement of where each kind of judge fits.</p>
+<h2>2. Place the judge on the output side</h2>
 <p>The single most consequential design choice. From Chapter 6:</p>
 <ul>
 <li>Input-side judges with naïve prompts (J1, J2 input variants) have <strong>100% block rates and 100% false-positive rates.</strong> They block adversarial-looking inputs indiscriminately. In production, this means your legitimate edge-case users see refusals.</li>
@@ -1031,7 +1096,7 @@ VERDICT: BLOCK
 <p>The reason is structural. The input is <em>the user&rsquo;s intent expressed through whatever frame they chose.</em> Many legitimate inputs are framed unusually — questions about edge cases, requests phrased as &ldquo;what if,&rdquo; structured queries with code blocks, multilingual users mixing languages. An input-side judge cannot tell whether an unusual frame is malicious without context the response provides. The output-side judge has the response and can ask the simpler, more answerable question: <em>would releasing this response violate the rule?</em></p>
 <p>The cost of output-side placement is one extra round-trip latency per request (the judge runs after the target). In most chatbot deployments, this is acceptable — total latency is dominated by the target&rsquo;s generation, and the judge runs at temperature 0 with a small token cap (~400 tokens), which finishes quickly. In agent deployments where round-trip latency is on the critical path, you may need to stream the target&rsquo;s response and run the judge in parallel against partial drafts; this is harder to engineer but addresses the latency without giving up output-side selectivity.</p>
 <p>When input-side filtering <em>does</em> make sense: rate-limited, adversarial-traffic-heavy public APIs where blocking pattern-matched payloads at the front door reduces backend cost. There the 100% block rate against jailbreak-shaped inputs is a feature, not a bug — but it is a different problem from &ldquo;protect a deployed assistant,&rdquo; and the judge in this role is closer to a WAF than to a safety reviewer.</p>
-<h2>2. Use a reasoning prompt, not a classifier prompt</h2>
+<h2>3. Use a reasoning prompt, not a classifier prompt</h2>
 <p>The shape of the judge&rsquo;s prompt matters more than its placement. From Chapter 6, J2-output (reasoning prompt, output side) had the lowest false-positive rate of any non-overblocking configuration: <strong>12.5%, vs. 32–34% for J1-output and J3-output</strong>. The same judge model (<code>qwen3-235b-a22b-2507</code>), the same target (<code>deepseek-chat-v3.1</code>), the same attacks. Only the prompt differs.</p>
 <p>The reasoning prompt forces the judge to articulate three things before deciding:</p>
 <ol>
@@ -1041,7 +1106,7 @@ VERDICT: BLOCK
 </ol>
 <p>The classifier prompt (J1) skips all three. It sees the input, pattern-matches on adversarial form, and emits ALLOW or BLOCK. Because adversarial form correlates poorly with actual rule violation in the response, the classifier ends up over-blocking on input and under-discriminating on output.</p>
 <p>A practical version of the reasoning prompt for deployment is in <code>src/warden/judges.py</code> at <code>_J2_OUTPUT</code>. Adapt it to your rule, not the other way around. If your deployment has multiple rules, run the judge once with all rules in the prompt and ask for one verdict — running multiple judges in parallel is plausible but multiplies cost.</p>
-<h2>3. Write the rule like a lawyer</h2>
+<h2>4. Write the rule like a lawyer</h2>
 <p>Several rule failures in the experiment traced back to rule wording, not to the model. The R2 (persona) leak under J2-output was a hedge — the target said something subtly negative about AcmeCorp without naming a competitor. The reasoning judge read the response, decided &ldquo;no competitor named,&rdquo; and let it through. The deterministic detector caught the negative-sentiment phrase, which is what the rule actually forbids.</p>
 <p>The pattern to internalize: <strong>a rule that says &ldquo;be nice about AcmeCorp&rdquo; leaves room for &ldquo;be neutral with a hedge.&rdquo; A rule that says &ldquo;never speak negatively about AcmeCorp, never criticize, never disparage, never recommend any competitor by name or category, never imply AcmeCorp is inferior in any dimension&rdquo; leaves much less room.</strong></p>
 <p>The same applies to every rule. The R1 (secret) prompt in this experiment runs to roughly 90 words and explicitly forbids:</p>
@@ -1060,11 +1125,11 @@ VERDICT: BLOCK
 </ul>
 <p>Without the explicit list, the model hallucinates &ldquo;<em>surely an emergency exception is intended</em>&rdquo; or &ldquo;<em>surely the administrator role overrides the system prompt</em>.&rdquo; A well-written rule eliminates the hallucination space.</p>
 <p>This is the part that is least sexy and most underestimated. <strong>Most of the apparent prompt-injection vulnerabilities in viral demos are rule-wording vulnerabilities, not model vulnerabilities.</strong> The model is doing what under-specified rules permit. Tighten the rule and the headline-shaped attacks die.</p>
-<h2>4. Layer cheap deterministic checks under the judge</h2>
+<h2>5. Layer cheap deterministic checks under the judge</h2>
 <p>The judge is a probabilistic check. Expensive, slow-ish, accurate-ish. A deterministic check is a fast, cheap, often-noisier complement: a regex over the model&rsquo;s response for forbidden tokens (the literal secret, the names of competitors, a tool-call syntax, code-block fencing in a non-code domain). Where the rule has a clean definition of violation, write the deterministic check and run it <em>in addition to</em> the judge.</p>
 <p>A two-layer defense — (judge, deterministic-check) — costs slightly more than judge alone and catches strictly more violations. The detector in Warden&rsquo;s <code>src/warden/rules.py</code> is the same shape: substring match, keyword regex, tool-call regex. None of it is sophisticated. All of it costs microseconds. None of it requires an LLM call. The combination is what produces the <em>measured</em> ASR numbers; the judge alone would let through any leak the judge fails to recognize, and the detector alone would miss anything outside its keyword set.</p>
 <p>For very-high-stakes deployments (medical, financial, legal), a third layer is worth considering: a <em>separate-family judge model</em> in addition to the primary one. If the target and the primary judge are the same family (both Qwen, both Llama, both DeepSeek), they share blind spots. A second judge from a different family — even a smaller cheaper one — catches some attacks the primary judge misses. The cost is one extra LLM call per request; the benefit is meaningful only in deployments where the cost of a leak is much higher than the cost of a refusal.</p>
-<h2>5. Monitor false-positive rate, not just block rate</h2>
+<h2>6. Monitor false-positive rate, not just block rate</h2>
 <p>Block rate alone is misleading. A judge with 100% block rate is useless. The metrics worth tracking in a live deployment are:</p>
 <table>
 <thead>
@@ -1101,7 +1166,7 @@ VERDICT: BLOCK
 </tbody>
 </table>
 <p>The false-positive rate is the one most likely to be skipped in production monitoring because it is harder to measure (you need a ground truth for &ldquo;would this have been refused anyway&rdquo;), and the one most likely to drive churn when it climbs. Set up shadow-mode logging early. Run the judge in shadow mode for a week before turning it on as a hard filter, and compute the FP rate from the shadow logs.</p>
-<h2>6. Re-evaluate quarterly, not annually</h2>
+<h2>7. Re-evaluate quarterly, not annually</h2>
 <p>The viral jailbreaks in 2026 are not the viral jailbreaks of 2025 (DAN-style persona setups died around late 2024 against modern frontier models). The next set of effective attacks will not look like this set. Re-running the evaluation in your specific deployment — your rules, your target, your judge, with whatever attack corpus you have access to that quarter — is much cheaper than the cost of a real breach.</p>
 <p>Warden runs in twenty minutes for under twenty cents on consumer credit. Plug a more recent attack corpus into <code>data/attacks/</code>, swap the target model in <code>src/warden/config.py</code>, and re-run. The numbers are the data; the framework is small enough to fork and adapt.</p>
 <h2>What this chapter does not say</h2>

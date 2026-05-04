@@ -89,7 +89,12 @@ ZetaLib publishes a guardrail prompt called **Omniguard** in `Prompts/Guardrails
 
 Including Omniguard as a judge variant is partly homage and partly methodology. The repository that catalogues the attacks also publishes a defense; a fair comparison runs the defense against the attacks. Whatever the headline numbers turn out to be, the comparison is a more interesting story than testing only judges we wrote ourselves.
 
-The structural risk specific to Omniguard is that it is large. 21 KB of guardrail prompt eats the same context-window budget that would otherwise hold the user's actual message and the assistant's draft response. For long inputs (the 6 KB Flag Jb attack, the 8 KB MODIE attack), this matters: less room for the actual content the judge needs to evaluate. A separate concern is that Omniguard is opinionated — it takes positions on what should and should not be allowed that may not match the deployment rule. Where they conflict, the result is unpredictable.
+There are two structural traits worth naming up front, because they shape the result and the comparison in Chapter 6:
+
+- **Omniguard is large.** 21 KB of guardrail prompt eats the same context-window budget that would otherwise hold the user's actual message and the assistant's draft response. For the longer payloads (the 6 KB Flag Jb truncation, the 8 KB MODIE truncation), this matters in absolute terms; for shorter payloads it's a token-cost concern more than a correctness one. The custom J2 prompt is roughly forty times shorter.
+- **Omniguard is opinionated.** It carries its own internal taxonomy of what should and should not be allowed, articulated for *generic* assistant deployments. When the deployment rule we're testing is *more specific* than Omniguard's built-in priors (e.g., "never recommend BetaCorp"), the two opinions can disagree, and Omniguard's prior occasionally wins over the bespoke rule. This is exactly what generic guardrails are designed to do — they aim for broadly safe behavior without per-deployment tuning — but it does mean Omniguard is doing a slightly different job than J1 / J2, which only know about the deployment rule.
+
+Neither of these traits is a flaw of Omniguard; both are visible properties of the choice between *generic guardrail* and *tailored judge*. Chapter 6 reports the numbers each makes against this corpus; Chapter 7 turns the comparison into a deployment recommendation that names when each choice is the right one.
 
 ## Input-side vs. output-side
 

@@ -110,7 +110,7 @@ Total: 560 trials, $0.1935 spent, 1176.5 seconds wall-clock (~19.6 minutes), 0 e
 warden run
 ```
 
-If you want to test a different judge prompt, modify `src/warden/judges.py` and re-run; if you want a different target rule, modify `src/warden/rules.py`. The framework is not opinionated about either. [Appendix C](#appendix-c-reproduce-this) walks through the customization in detail.
+If you want to test a different judge prompt, modify `src/warden/judges.py` and re-run; if you want a different target rule, modify `src/warden/rules.py`. The framework is not opinionated about either. [Appendix C](#reproduce-this) walks through the customization in detail.
 
 The next chapter turns these numbers into a deployment recommendation.
 

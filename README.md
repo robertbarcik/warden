@@ -24,20 +24,34 @@ twenty attacks, four rules, and four judge designs.
 
 ## Headline finding
 
-The hypothesis holds. Across all three target models (DeepSeek Chat v3.1,
-DeepSeek v3.2, GLM-4.6) the picture is consistent: **baseline ASR sits in the
-15–25% band; with a tailored reasoning judge on the output side, ASR drops
-below 2% with a 12–15% false-positive rate.**
+The hypothesis holds across all three target models. Baseline ASR varies by
+target safety training, but the judge layer reduces ASR to near-zero on every
+target.
 
-| Configuration                     | ASR (DeepSeek v3.1) | False-positive rate |
-| --------------------------------- | ------------------: | ------------------: |
-| **No judge** (baseline)           |              20.0%  |                  —  |
-| Simple classifier on **input**    |               0.0%  |          **100.0%** *(blocks everything)* |
-| Reasoning judge on **input**      |               0.0%  |          **100.0%** *(blocks everything)* |
-| Omniguard on **input**            |               2.5%  |               93.8% |
-| Simple classifier on **output**   |               0.0%  |               34.4% |
-| Omniguard on **output**           |               0.0%  |               32.8% |
-| **Reasoning judge on output**     |          **1.2%**   |          **12.5%** *(practical sweet spot)* |
+| Target                    | Baseline ASR | Best judge config | Best ASR | Best FP |
+| ------------------------- | -----------: | ----------------- | -------: | ------: |
+| DeepSeek Chat v3.1 (37B)  |       20.0%  | J2-output         |     1.2% |   12.5% |
+| DeepSeek v3.2 (685B MoE)  |       23.8%  | J2-output         |     1.2% |   18.0% |
+| GLM-4.6 (357B)            |        5.0%  | J2-output         |     1.2% |    7.5% |
+
+GLM-4.6 was substantially more robust at baseline than either DeepSeek model —
+its safety training already refused most attacks before the judge saw them.
+On the two DeepSeek targets, the judge layer carried more of the load. This
+is the cross-target signal: *the right defense generalizes, but the residual
+work the judge has to do depends on which target you put behind it.*
+
+Per-condition picture for the original DeepSeek Chat v3.1 sweep (representative
+of the structural finding):
+
+| Configuration                     | ASR    | False-positive rate |
+| --------------------------------- | -----: | ------------------: |
+| **No judge** (baseline)           |  20.0% |                  —  |
+| Simple classifier on **input**    |   0.0% |          **100.0%** *(blocks everything)* |
+| Reasoning judge on **input**      |   0.0% |          **100.0%** *(blocks everything)* |
+| Omniguard on **input**            |   2.5% |               93.8% |
+| Simple classifier on **output**   |   0.0% |               34.4% |
+| Omniguard on **output**           |   0.0% |               32.8% |
+| **Reasoning judge on output**     | **1.2%** |        **12.5%** *(practical sweet spot)* |
 
 The production-shaped recommendation is **a tailored reasoning judge on the
 output side** when the deployment rule is known, **a generic guardrail like
@@ -47,8 +61,7 @@ turned off in production. The booklet's
 [Chapter 8](https://publications.barcik.training/warden/#defenses-for-deployers)
 has the full deployment playbook.
 
-Total run cost (three full sweeps, 1,680 trials): well under $1 of OpenRouter
-credit, ~50 minutes wall-clock combined, 0 errors.
+Three full sweeps, 1,680 trials total, $1.06 of OpenRouter credit, 0 errors.
 
 ## What it does
 

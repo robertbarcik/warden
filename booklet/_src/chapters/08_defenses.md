@@ -1,6 +1,6 @@
 # Defenses for Deployers
 
-This chapter is the productive output of the experiment. It is for engineering teams about to deploy an AI assistant — a customer-support chatbot, an internal agent, a domain-specialized helper — and trying to decide what kind of prompt-injection defense to put in front of it. The recommendations come directly from Chapter 6's results, but they are deployment-shaped, not paper-shaped.
+This chapter is the productive output of the experiment. It is for engineering teams about to deploy an AI assistant — a customer-support chatbot, an internal agent, a domain-specialized helper — and trying to decide what kind of prompt-injection defense to put in front of it. The recommendations come directly from Chapter 7's results, but they are deployment-shaped, not paper-shaped.
 
 ## The short version
 
@@ -33,7 +33,7 @@ A common misread of the experiment's numbers is "the bespoke judge beats Omnigua
 
 ## 2. Place the judge on the output side
 
-The single most consequential design choice. From Chapter 6:
+The single most consequential design choice. From Chapter 7:
 
 - Input-side judges with naïve prompts (J1, J2 input variants) have **100% block rates and 100% false-positive rates.** They block adversarial-looking inputs indiscriminately. In production, this means your legitimate edge-case users see refusals.
 - Output-side judges (J1, J2, J3 output variants) have **block rates of 25–44%** and **false-positive rates of 12–34%.** They block selectively, only when the model's actual response would have been a violation.
@@ -46,7 +46,7 @@ When input-side filtering *does* make sense: rate-limited, adversarial-traffic-h
 
 ## 3. Use a reasoning prompt, not a classifier prompt
 
-The shape of the judge's prompt matters more than its placement. From Chapter 6, J2-output (reasoning prompt, output side) had the lowest false-positive rate of any non-overblocking configuration: **12.5%, vs. 32–34% for J1-output and J3-output**. The same judge model (`qwen3-235b-a22b-2507`), the same target (`deepseek-chat-v3.1`), the same attacks. Only the prompt differs.
+The shape of the judge's prompt matters more than its placement. From Chapter 7, J2-output (reasoning prompt, output side) had the lowest false-positive rate of any non-overblocking configuration: **12.5%, vs. 32–34% for J1-output and J3-output**. The same judge model (`qwen3-235b-a22b-2507`), the same target (`deepseek-chat-v3.1`), the same attacks. Only the prompt differs.
 
 The reasoning prompt forces the judge to articulate three things before deciding:
 
@@ -119,3 +119,27 @@ Warden runs in twenty minutes for under twenty cents on consumer credit. Plug a 
 - *"Frontier vendor models would do better."* Possibly. The vendor moderation layer would also have prevented this experiment from running, which is part of why the open-weight stack is the more interesting deployment story.
 
 The next and final chapter handles the credits and the limitations.
+
+> **Diagnostic checklist**
+> - ☐ Does your deployment have a clear, articulable rule? (If yes → tailored reasoning judge. If no → generic guardrail like Omniguard.)
+> - ☐ Is the rule written explicitly, not aspirationally? Does it forbid paraphrase, encoding, fictional disclosure, emergency override, and admission of the rule itself?
+> - ☐ Is the judge on the *output* side, not the input side?
+> - ☐ Is the judge prompt a *reasoning* prompt (asks the judge to identify intent, check the rule, then decide), not a one-shot classifier?
+> - ☐ Is the judge model at least as capable as the target model? Ideally larger?
+> - ☐ Is the judge model from a *different family* than the target (different vendor, different training data) to avoid shared blind spots?
+> - ☐ Do you have a *deterministic detector* layered under the judge for cases where the rule has a clean syntactic definition?
+> - ☐ Are you tracking *false-positive rate* in shadow mode, not just block rate?
+> - ☐ Do you have a fallback path when the judge times out or errors? (Default: fail-closed for safety, fail-open if UX is the binding constraint and the cost of a leak is small.)
+> - ☐ Do you have an escalation path for legitimate requests that get blocked? (Human review, "I think this got blocked unfairly" feedback button, etc.)
+> - ☐ Are you re-evaluating the defense quarterly against an updated attack corpus?
+> - ☐ Have you ever tested the judge against attacks specifically optimized to defeat *it* (not just the target)? (If no, your numbers are an upper bound on the judge's real performance.)
+
+> **Key takeaways**
+> - The right defense is a *tailored reasoning judge on the output side* for known rule landscapes; a *generic guardrail* like Omniguard for open ones. Pick one consciously based on what your deployment knows about the rule.
+> - The most underestimated lever is the *rule wording*. Most of the apparent prompt-injection vulnerabilities in viral demos are rule-wording vulnerabilities, not model vulnerabilities. A rule written like a lawyer eliminates a large class of attacks for free.
+> - Layer cheap deterministic detectors under the judge wherever the rule has a clean syntactic definition. Two layers cost slightly more than one and catch strictly more.
+
+> **Discussion questions**
+> 1. Imagine a deployment where the *cost of a single leak* is six figures (e.g., a financial-services chatbot that must never recommend a security). Which judge configuration would you deploy, and what additional engineering would you do beyond what's in this chapter?
+> 2. Conversely, imagine a deployment where the *cost of a single false rejection* is high (e.g., an emergency-services helpline assistant). How does the judge choice flip? What would you accept giving up?
+> 3. The chapter recommends re-evaluating the defense *quarterly*. What metric on a live deployment would tell you "the defense is decaying" before the quarterly check fires?

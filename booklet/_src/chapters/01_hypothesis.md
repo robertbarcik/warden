@@ -28,9 +28,19 @@ The reader is assumed to know what an LLM is, what prompt injection is, and what
 
 There are two productive uses for this material:
 
-- **Engineering teams considering an LLM-as-judge defense layer.** Chapter 7 is the chapter to read. It contains an actionable playbook for what to deploy, how to place it, and what to monitor.
+- **Engineering teams considering an LLM-as-judge defense layer.** Chapter 8 is the chapter to read. It contains an actionable playbook for what to deploy, how to place it, and what to monitor.
 - **Trainers and educators teaching about LLM security.** Chapters 2 through 6 form a self-contained walk-through of how to set up, run, and read this kind of evaluation, and where its honest limits sit.
 
 What follows is a small, finite experiment, with the credits and the caveats stated up front. It is not the last word on prompt-injection defense — it is one tightly-scoped check on a very specific claim.
 
-> **Inspiration & credit.** Every weaponized payload tested against Warden's defenders is either mirrored from ZetaLib or modelled on its taxonomy. The repository's idea of cataloguing both attacks ("Sword") and defenses ("Shield") side by side is what made it the right artefact to test. The Omniguard guardrail prompt from ZetaLib is one of the four judge variants compared in Chapter 5.
+> **Inspiration & credit.** Every weaponized payload tested against Warden's defenders is either mirrored from ZetaLib or modelled on its taxonomy. The repository's idea of cataloguing both attacks ("Sword") and defenses ("Shield") side by side is what made it the right artefact to test. The Omniguard guardrail prompt from ZetaLib is one of the four judge variants compared in [Chapter 6](#the-judges).
+
+> **Key takeaways**
+> - The hypothesis under test is narrow: can a competent LLM-as-judge intercept *public, single-turn* jailbreak attacks against an instruction-hierarchy rule? This is the easy case for the defender, and the case every deployed assistant actually faces.
+> - The experiment uses open-weight models (target and judge) accessed through OpenRouter. Vendor models are deliberately not in the loop: their API moderation interferes with adversarial inputs, and the open-weight stack is the more relevant deployment story for many production scenarios.
+> - Lineage credit is to ZetaLib. Half the experiment is testing ZetaLib's own published guardrail prompt (Omniguard) against ZetaLib's own attack corpus.
+
+> **Discussion questions**
+> 1. The introduction draws a sharp line between *trained refusal* and *instruction-hierarchy adherence*. Pick an LLM application your team has deployed (or might deploy) and identify which layer carries most of its safety-critical rules. How would you know if that layer is failing in production?
+> 2. The hypothesis is framed as something that should be testable with a small experiment. What numerical result would falsify it? What result would only weakly support it? What result would strongly support it?
+> 3. Why does the booklet *not* test attacks against trained-refusal categories like weapons synthesis? What kind of evaluation would be appropriate for that, and who is best positioned to run it?

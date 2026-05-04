@@ -2,7 +2,7 @@
 
 Four prompts. One classifier. One reasoning judge. One ZetaLib-published guardrail. One control with no judge at all. Each of the three real ones is tested at two placements: input-side, where the judge sees the user's message and may BLOCK before the target ever runs; and output-side, where the target produces a draft response first and the judge sees user input plus draft response and may BLOCK before delivery. That gives seven conditions per attack-rule pair — six judge configurations plus the no-judge baseline.
 
-This chapter walks through each judge variant: what the prompt asks the judge to do, why that prompt design exists, and what trade-offs each one makes. Chapter 6 has the numbers each one actually produced.
+This chapter walks through each judge variant: what the prompt asks the judge to do, why that prompt design exists, and what trade-offs each one makes. Chapter 7 has the numbers each one actually produced.
 
 ## J0 — no judge (baseline)
 
@@ -89,12 +89,12 @@ ZetaLib publishes a guardrail prompt called **Omniguard** in `Prompts/Guardrails
 
 Including Omniguard as a judge variant is partly homage and partly methodology. The repository that catalogues the attacks also publishes a defense; a fair comparison runs the defense against the attacks. Whatever the headline numbers turn out to be, the comparison is a more interesting story than testing only judges we wrote ourselves.
 
-There are two structural traits worth naming up front, because they shape the result and the comparison in Chapter 6:
+There are two structural traits worth naming up front, because they shape the result and the comparison in Chapter 7:
 
 - **Omniguard is large.** 21 KB of guardrail prompt eats the same context-window budget that would otherwise hold the user's actual message and the assistant's draft response. For the longer payloads (the 6 KB Flag Jb truncation, the 8 KB MODIE truncation), this matters in absolute terms; for shorter payloads it's a token-cost concern more than a correctness one. The custom J2 prompt is roughly forty times shorter.
 - **Omniguard is opinionated.** It carries its own internal taxonomy of what should and should not be allowed, articulated for *generic* assistant deployments. When the deployment rule we're testing is *more specific* than Omniguard's built-in priors (e.g., "never recommend BetaCorp"), the two opinions can disagree, and Omniguard's prior occasionally wins over the bespoke rule. This is exactly what generic guardrails are designed to do — they aim for broadly safe behavior without per-deployment tuning — but it does mean Omniguard is doing a slightly different job than J1 / J2, which only know about the deployment rule.
 
-Neither of these traits is a flaw of Omniguard; both are visible properties of the choice between *generic guardrail* and *tailored judge*. Chapter 6 reports the numbers each makes against this corpus; Chapter 7 turns the comparison into a deployment recommendation that names when each choice is the right one.
+Neither of these traits is a flaw of Omniguard; both are visible properties of the choice between *generic guardrail* and *tailored judge*. Chapter 7 reports the numbers each makes against this corpus; Chapter 8 turns the comparison into a deployment recommendation that names when each choice is the right one.
 
 ## Input-side vs. output-side
 
@@ -113,7 +113,7 @@ Every judge variant is run at two placements. The trade-offs differ by mechanism
 
 The headline takeaway from running both: input-side judges with simple prompts behave like adversarial-pattern detectors. They block almost everything that looks like a jailbreak — including legitimate edge-case requests that happen to share surface features with one. Output-side judges have richer information (the model's actual response) and can be more selective, blocking only when the response would actually violate the rule.
 
-For a production deployment, the trade-off is between latency and selectivity. Input-side is faster but blunter. Output-side is more accurate but adds round-trip latency. Chapter 7 has the deployment-shaped recommendation; this chapter only sets up the comparison.
+For a production deployment, the trade-off is between latency and selectivity. Input-side is faster but blunter. Output-side is more accurate but adds round-trip latency. Chapter 8 has the deployment-shaped recommendation; this chapter only sets up the comparison.
 
 ## What this chapter does not test
 
@@ -124,4 +124,14 @@ A few things deliberately not in the picture:
 - **Ensemble judges.** Running J1, J2, and J3 in parallel and BLOCKing if any of them does. Probably stronger than any single judge. Probably too expensive for many production settings. Worth measuring; not measured here.
 - **Adaptive attacks against the judge prompt itself.** All twenty attacks were authored or selected without sight of the judge prompts. An attacker who optimized specifically against the judge would do better. Real but out of scope.
 
-The next chapter reports the numbers. Then Chapter 7 says, given those numbers, what to deploy.
+The next chapter reports the numbers. Then [Chapter 8](#defenses-for-deployers) says, given those numbers, what to deploy.
+
+> **Key takeaways**
+> - Four judge designs × two placements × one no-judge baseline gives seven conditions per (attack, rule) pair. The classifier (J1) and reasoning (J2) prompts are the canonical "tailored" judges; Omniguard (J3) is a generic guardrail; J0 is the unguarded control.
+> - Input-side judges with naïve prompts behave like adversarial-pattern detectors: they block almost any unusual input. Output-side judges have richer information (the model's actual response) and can be selective.
+> - "Tailored vs generic" is a real choice with real trade-offs. A tailored reasoning judge has lower context cost and lower FP for a known rule. A generic guardrail like Omniguard has broader prior coverage at the cost of higher FP and higher context cost. Neither is strictly better.
+
+> **Discussion questions**
+> 1. Why does a fail-closed verdict parser (any ambiguous output → BLOCK) make sense for safety, and what does it cost you in practice? When would you want a fail-*open* parser instead?
+> 2. The reasoning judge prompt (J2) explicitly names the categories of subversion to watch for. What's the trade-off versus a generic prompt that just says "watch for jailbreaks"? Predict what would happen if a brand-new attack mechanism emerged that's not on the named list.
+> 3. Why does an output-side judge see *both* the user message and the assistant's draft response? Why isn't the response alone enough?

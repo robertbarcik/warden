@@ -24,7 +24,7 @@ A short and honest list of where the conclusions do not generalize.
 
 **Trained-refusal categories not tested.** The four rules in this experiment are instruction-hierarchy rules — system-prompt-defined. They do not include trained-refusal categories like weapons synthesis, child safety, or self-harm. Frontier models are evaluated against those by their developers using different methodology. We are explicit about not testing the same thing.
 
-**Rule wording and detector wording are part of the result.** A 25% baseline ASR against R2 (persona) is a property of *that wording* of the persona rule and *that wording* of the violation detector. A weaker rule wording would produce higher ASR; a stronger one would produce lower. The recommendation in Chapter 7 to "write the rule like a lawyer" is not optional methodological advice — it is part of the experimental setup, and any deployment trying to replicate the results must do the same work.
+**Rule wording and detector wording are part of the result.** A 25% baseline ASR against R2 (persona) is a property of *that wording* of the persona rule and *that wording* of the violation detector. A weaker rule wording would produce higher ASR; a stronger one would produce lower. The recommendation in Chapter 8 to "write the rule like a lawyer" is not optional methodological advice — it is part of the experimental setup, and any deployment trying to replicate the results must do the same work.
 
 **Only OpenRouter open-weight models tested.** Vendor models (Claude, GPT, Gemini) are not tested as targets. Their API-side moderation interferes with adversarial inputs in ways that would distort the experiment, and their evaluation methodology is the responsibility of their developers. The defensive picture for open-weight deployments — the more relevant picture for many production scenarios — is what Warden draws.
 
@@ -53,3 +53,13 @@ Three more that need framework changes:
 The student who sent me the ZetaLib link did not believe his own claim that the library was "the only AI library you need." He sent it because it looked impressive and he wanted to know what to make of it. The honest answer turns out to be: the attacks are real but mostly defeated by even modest judge layers, the *good* defensive technique published in the same library (Omniguard) is not always the best choice for a specific deployment, and the most important variable is not the judge model — it is whether you wrote your deployment rule like a lawyer and where you placed the judge in the pipeline.
 
 That is a more useful answer than "the library is impressive" or "the attacks don't work." It is the answer this booklet exists to make available to anyone deploying an LLM in production this year.
+
+> **Key takeaways**
+> - The attack lineage is explicit: 11 of 20 attacks mirror ZetaLib's `Prompts/Jailbreaks/`, and Omniguard is one of the four judge variants. Without ZetaLib, this experiment would either not have happened or would be an inferior version of itself.
+> - Every conclusion in this booklet is bounded by what was tested: three open-weight targets, one open-weight judge, twenty static attacks, four rules, single-turn only. The framework is small enough to fork and re-run with different choices — that is the productive output, not the specific numbers.
+> - The numbers in this booklet are point-in-time. The viral attacks of 2026 are not the viral attacks of 2025; by 2027 the effective set will look different. Plan to re-run.
+
+> **Discussion questions**
+> 1. The "Future work" list includes adding indirect / RAG-borne prompt injection. What changes to the framework's data structures and judge prompts would be needed? Sketch the diff.
+> 2. The booklet repeatedly notes that *open-weight* models are the focus and that vendor models are deliberately not tested. List two ways the picture might look different on a frontier vendor model, and one way it might look identical.
+> 3. If you had a $5,000 budget and one engineering month, which of the limitations in this chapter would you address first, and what would you expect to learn?

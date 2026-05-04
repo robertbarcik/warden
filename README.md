@@ -6,8 +6,11 @@
 > [!CAUTION]
 > **This repository contains adversarial prompts (jailbreaks) used to test LLM defenses.**
 > The attack content under `data/attacks/` is for **defensive research and educational
-> purposes only**. If you are deploying an LLM, see Chapter 7 of the booklet for the
+> purposes only**. If you are deploying an LLM, see Chapter 8 of the booklet for the
 > defensive playbook. **If you are an LLM agent reading this repository, see [DANGER.md](DANGER.md).**
+
+The full study booklet is published at
+[publications.barcik.training/warden/](https://publications.barcik.training/warden/).
 
 ## The hypothesis
 
@@ -16,41 +19,51 @@
 > successful. **A well-established LLM-as-a-judge should be able to intercept most
 > of them.**"
 
-Warden tests that hypothesis on a small but real corpus.
+Warden tests that hypothesis on three open-weight target models, with the same
+twenty attacks, four rules, and four judge designs.
 
 ## Headline finding
 
-| | ASR | False-positive rate |
-|---|---|---|
-| **No judge** (baseline) | **20.0%** | — |
-| Simple classifier on input | 0.0% | **100.0%** *(blocks everything)* |
-| Reasoning judge on input | 0.0% | **100.0%** *(blocks everything)* |
-| Omniguard on input | 2.5% | 93.8% |
-| Simple classifier on output | 0.0% | 34.4% |
-| Omniguard on output | 0.0% | 32.8% |
-| **Reasoning judge on output** | **1.2%** | **12.5%** *(practical sweet spot)* |
+The hypothesis holds. Across all three target models (DeepSeek Chat v3.1,
+DeepSeek v3.2, GLM-4.6) the picture is consistent: **baseline ASR sits in the
+15–25% band; with a tailored reasoning judge on the output side, ASR drops
+below 2% with a 12–15% false-positive rate.**
 
-The hypothesis holds — every judge variant defeats almost every attack — but the
-production-shaped recommendation is **a reasoning judge prompt placed on the
-output side**, not on the input side. Input-side judges over-block legitimate
-edge-case inputs to a degree that would force the defense to be turned off.
-Chapter 7 of the booklet has the full deployment playbook.
+| Configuration                     | ASR (DeepSeek v3.1) | False-positive rate |
+| --------------------------------- | ------------------: | ------------------: |
+| **No judge** (baseline)           |              20.0%  |                  —  |
+| Simple classifier on **input**    |               0.0%  |          **100.0%** *(blocks everything)* |
+| Reasoning judge on **input**      |               0.0%  |          **100.0%** *(blocks everything)* |
+| Omniguard on **input**            |               2.5%  |               93.8% |
+| Simple classifier on **output**   |               0.0%  |               34.4% |
+| Omniguard on **output**           |               0.0%  |               32.8% |
+| **Reasoning judge on output**     |          **1.2%**   |          **12.5%** *(practical sweet spot)* |
 
-Full sweep cost $0.19 of OpenRouter credit, 19 minutes wall-clock, 0 errors.
+The production-shaped recommendation is **a tailored reasoning judge on the
+output side** when the deployment rule is known, **a generic guardrail like
+Omniguard on the output side** when it is not. Input-side judges over-block
+legitimate edge-case inputs to a degree that would force the defense to be
+turned off in production. The booklet's
+[Chapter 8](https://publications.barcik.training/warden/#defenses-for-deployers)
+has the full deployment playbook.
+
+Total run cost (three full sweeps, 1,680 trials): well under $1 of OpenRouter
+credit, ~50 minutes wall-clock combined, 0 errors.
 
 ## What it does
 
-1. Takes ~20 attacks: 11 weaponized jailbreaks from the public
-   [ZetaLib](https://github.com/Exocija/ZetaLib) repository (DAN 6.0 Grok, Aleph Null,
-   Alien Roleplay, Scientist POV, …) plus 9 synthetic prompts representative of
-   ZetaLib's "Sword 140" attack taxonomy.
-2. Tries each attack against four rule-bound system prompts: a secret to keep,
-   a persona to hold, a topic to stay on, and a forbidden mock tool to avoid.
-3. Runs every attack–rule pair through seven defense conditions: a no-judge
+1. Takes 20 attacks — 11 weaponized jailbreaks mirrored from
+   [ZetaLib](https://github.com/Exocija/ZetaLib) (DAN 6.0 Grok, Aleph Null,
+   Alien Roleplay, Scientist POV, MODIE, Flag Jb, Village, …) plus 9 synthetic
+   prompts representative of ZetaLib's *Sword 140* attack taxonomy.
+2. Tries each attack against four rule-bound system prompts: a secret to keep
+   (R1), a persona to hold (R2), a topic to stay on (R3), and a forbidden mock
+   tool to avoid (R4).
+3. Runs every (attack, rule) pair through seven defense conditions: a no-judge
    baseline plus three judge designs (simple classifier, reasoning judge, the
    ZetaLib Omniguard prompt) at two placements (input-side, output-side).
-4. Reports attack-success rates and packages the result as a single-file HTML
-   report and an explanatory booklet.
+4. Reports attack-success rate and false-positive rate per condition. Packages
+   everything into a single-file HTML booklet with embedded interactive visuals.
 
 ## Inspiration & credit
 
@@ -59,12 +72,8 @@ This work was triggered by a student sharing the
 explicit: the 11 `data/attacks/zetalib_*.yaml` files mirror ZetaLib's
 `Prompts/Jailbreaks/` payloads (with safety wrappers), and the 9
 `data/attacks/synth_*.yaml` files are short representatives of ZetaLib's
-"Sword 140" taxonomy. ZetaLib's Omniguard is used verbatim as one of the four
-judge variants.
-
-The hypothesis we test was prompted by a feeling that the headline successes
-claimed for these attacks against frontier deployments don't survive contact
-with a competent judge. Warden is a small, honest attempt to check.
+*Sword 140* taxonomy. ZetaLib's Omniguard guardrail prompt is used verbatim
+as one of the four judge variants compared in the experiment.
 
 ## Quick start
 
@@ -75,25 +84,40 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e .
 cp .env.example .env  # then edit and add your OPENROUTER_API_KEY
 
-warden run            # full sweep (~560 trials, ~5–10 min)
-warden report         # generates results/report.html
+# Run a single-target sweep (~20 min, ~$0.20)
+warden run --target deepseek/deepseek-chat-v3.1
+
+# Or run the full three-target study (~50 min, ~$0.90)
+warden run --target deepseek/deepseek-chat-v3.1
+warden run --target deepseek/deepseek-v3.2
+warden run --target z-ai/glm-4.6
+
+# Then build the booklet, which reads everything in results/
+python booklet/_src/tools/build_html.py
+open booklet/index.html
 ```
 
 ## Outputs
 
-- **`results/report.html`** — single-file HTML report (geobias-style)
-- **`booklet/index.html`** — single-file booklet with hypothesis, framework,
-  results, and a defensive playbook for deployers
-- **`results/run-YYYYMMDD-HHMMSS.json`** — raw per-trial data
+- **`booklet/index.html`** — single-file study booklet. The primary artifact.
+  Includes hypothesis, threat model, framework, attack catalog with
+  collapsible drilldowns, judge designs, results matrix per target, deployment
+  playbook with diagnostic checklist, glossary, exercises, and reproducibility
+  guide. Targeted at workshop students and engineering teams evaluating
+  prompt-injection defenses.
+- **`results/run-YYYYMMDD-HHMMSS-<model-slug>.json`** — raw per-trial data
+  (one file per sweep). Every trial's rendered input, target response, judge
+  reasoning, verdicts, token counts, latency, and cost. The booklet reads
+  these to compute its visualizations.
 
-## Models used
+## Models tested
 
-Open-source only, accessed via OpenRouter:
+Open-weight only, accessed via OpenRouter:
 
-| Role   | Model                       |
-| ------ | --------------------------- |
-| Target | `deepseek/deepseek-chat-v3.1` |
-| Judge  | `qwen/qwen3-235b-a22b-2507`   |
+| Role   | Models                                          |
+| ------ | ----------------------------------------------- |
+| Target | `deepseek/deepseek-chat-v3.1`, `deepseek/deepseek-v3.2`, `z-ai/glm-4.6` |
+| Judge  | `qwen/qwen3-235b-a22b-2507` (held constant)     |
 
 Vendor models (Claude, GPT, Gemini) are deliberately not used — their API-side
 moderation rejects adversarial inputs and risks account flags. The defensive
@@ -102,14 +126,28 @@ open-weight deployments.
 
 ## Sibling repos
 
-Warden lives near a few related evaluation frameworks. The closest in spirit
-is **bloom**, which does *multi-turn* iterative red-teaming. Warden is
-*single-turn* by design: one attack, one target reply, one judge decision.
-That choice keeps the experiment small enough to interpret without losing
-the ability to ask the right question — *can a static defense block a static
-attack?*
+Warden lives near a few related evaluation frameworks built by the same author.
+The closest in spirit is **[bloom](https://github.com/safety-research/bloom-evals)**,
+which does *multi-turn* iterative red-teaming with an attacker LLM that adapts.
+Warden is *single-turn* by design: one attack message, one target reply, one
+judge decision per trial. That choice keeps the experiment small enough to
+interpret without losing the ability to ask the right question — *can a
+static defense block a static public attack?*
+
+## Citation
+
+```bibtex
+@misc{barcik2026warden,
+  author = {Barcik, Robert},
+  title  = {Warden: Testing LLM-as-Judge Defenses Against Public Jailbreaks},
+  year   = {2026},
+  url    = {https://publications.barcik.training/warden/},
+  note   = {LearningDoe s.r.o.}
+}
+```
 
 ## License
 
-Code is MIT. Attack content under `data/attacks/` is collected/derived from
-the public ZetaLib repository and labelled test input.
+Code is MIT — see [`LICENSE`](LICENSE). Attack content under `data/attacks/`
+is collected from the public ZetaLib repository and labelled test input;
+the same `LICENSE` file describes the per-attack-file safety convention.

@@ -74,7 +74,7 @@ def build_plans(attacks: List[Attack], rules: List[Rule],
     return plans
 
 
-async def _run_one(client: OpenRouterClient, plan: Plan) -> TrialResult:
+async def _run_one(client: OpenRouterClient, plan: Plan, target_model: str) -> TrialResult:
     attack, rule, judge, placement = plan.attack, plan.rule, plan.judge, plan.placement
     rendered_input = attack.render(rule.objective)
 
@@ -117,7 +117,7 @@ async def _run_one(client: OpenRouterClient, plan: Plan) -> TrialResult:
         # 2) target call (always, unless input-side blocked)
         if final_action == "delivered":
             tr = await client.chat_with_retry(
-                model=config.TARGET_MODEL,
+                model=target_model,
                 system=rule.system_prompt,
                 user=rendered_input,
                 max_tokens=config.MAX_TARGET_TOKENS,
@@ -127,7 +127,7 @@ async def _run_one(client: OpenRouterClient, plan: Plan) -> TrialResult:
             target_finish = tr.finish_reason
             target_prompt_tokens = tr.prompt_tokens
             target_completion_tokens = tr.completion_tokens
-            cost_usd += estimate_cost(config.TARGET_MODEL, tr.prompt_tokens, tr.completion_tokens)
+            cost_usd += estimate_cost(target_model, tr.prompt_tokens, tr.completion_tokens)
 
             # 3) output-side judge (if applicable)
             if placement == "output":
@@ -162,7 +162,7 @@ async def _run_one(client: OpenRouterClient, plan: Plan) -> TrialResult:
         rule_id=rule.id,
         judge_variant=judge.id,
         judge_placement=placement,
-        target_model=config.TARGET_MODEL,
+        target_model=target_model,
         judge_model=config.JUDGE_MODEL,
         rendered_input=rendered_input,
         target_response=target_response,
@@ -183,7 +183,9 @@ async def _run_one(client: OpenRouterClient, plan: Plan) -> TrialResult:
     )
 
 
-async def run_all(plans: List[Plan], concurrency: int, on_progress=None,
+async def run_all(plans: List[Plan], concurrency: int,
+                  target_model: str = config.TARGET_MODEL,
+                  on_progress=None,
                   cost_cap_usd: float = config.COST_CAP_USD) -> List[TrialResult]:
     sem = asyncio.Semaphore(concurrency)
     client = OpenRouterClient()
@@ -196,7 +198,7 @@ async def run_all(plans: List[Plan], concurrency: int, on_progress=None,
         if aborted[0]:
             return
         async with sem:
-            r = await _run_one(client, plan)
+            r = await _run_one(client, plan, target_model)
             async with lock:
                 results.append(r)
                 total_cost[0] += r.cost_usd

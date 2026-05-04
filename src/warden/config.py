@@ -30,9 +30,11 @@ REQUEST_TIMEOUT = 90.0
 # Cost guard (USD; aborts run if exceeded)
 COST_CAP_USD = 4.0
 
-# Pricing table (USD per token; only the models above)
+# Pricing table (USD per token). Add a row when introducing a new target/judge.
 PRICING = {
-    "deepseek/deepseek-chat-v3.1":  {"prompt": 0.15e-6, "completion": 0.75e-6},
+    "deepseek/deepseek-chat-v3.1":  {"prompt": 0.15e-6,  "completion": 0.75e-6},
+    "deepseek/deepseek-v3.2":       {"prompt": 0.252e-6, "completion": 0.378e-6},
+    "z-ai/glm-4.6":                 {"prompt": 0.39e-6,  "completion": 1.90e-6},
     "qwen/qwen3-235b-a22b-2507":    {"prompt": 0.071e-6, "completion": 0.10e-6},
 }
 

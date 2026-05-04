@@ -51,3 +51,13 @@ Several real and important categories sit outside Warden's scope:
 The honest claim is narrow: *if you deploy an LLM under one of the four rule types above, can a single-message public jailbreak make the model violate the rule, and does an LLM-as-judge in the loop help?* The answer takes a few hundred trials and one open-weight judge model to find out.
 
 > **Where to look in the repo.** The system prompts are in `src/warden/rules.py`. The objective strings the attacker substitutes into each attack template are in the same file. The deterministic per-rule violation detectors are also there — they are the definition, in code, of what counts as a violation.
+
+> **Key takeaways**
+> - Two threat layers are routinely conflated: *trained refusal* (RLHF-baked, defends against weapons / abuse / harmful categories) and *instruction-hierarchy adherence* (system-prompt-defined, defends against deployment-specific rules). Most public jailbreak demos attack the second layer but headline as if they had defeated the first.
+> - This experiment tests the second layer only. It is the layer almost every deployed assistant actually relies on, and where attacks still succeed in 2026.
+> - The four representative rules — secret extraction, persona, topic, mock tool — were picked because each maps to a real-world deployment shape and each has a different *kind* of violation surface.
+
+> **Discussion questions**
+> 1. Pick a real assistant deployment (yours or a public one). Which of the four representative rule shapes does it most resemble? What additional rule shapes would you add if you were extending this booklet's framework?
+> 2. The R1 (secret) system prompt explicitly enumerates forbidden disclosure modes (encoded, paraphrased, fictional, emergency, …). Why is that level of explicitness needed? What does it tell you about how the model interprets under-specified rules?
+> 3. The threat model excludes indirect / RAG-borne prompt injection. Sketch how Warden's framework would have to change to evaluate that case. Which judge configurations from the experiment would still apply, and which wouldn't?

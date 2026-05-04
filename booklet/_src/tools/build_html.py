@@ -282,6 +282,126 @@ blockquote p:last-child { margin-bottom: 0; }
 
 hr { border: none; border-top: 2px solid var(--border); margin: 4rem 0; }
 
+/* === STAT TABLE (cross-target headline) === */
+.stat-table-wrap { margin: 1.5rem 0; overflow-x: auto; }
+.stat-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.stat-table thead { background: var(--navy); color: white; }
+.stat-table th { padding: 0.7rem 0.9rem; text-align: left; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.stat-table td { padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.stat-table tbody tr:nth-child(even) { background: var(--bg-sidebar); }
+.stat-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.stat-table .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85em; }
+.stat-table .dim  { color: var(--text-light); font-weight: 400; }
+
+/* === HEATMAP === */
+.heatmap-suite { margin: 1.5rem 0; }
+.heatmap-card { margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-sidebar); overflow: hidden; }
+.heatmap-card[open] { background: white; }
+.heatmap-card summary { padding: 0.85rem 1.1rem; cursor: pointer; user-select: none; list-style: none; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.95rem; }
+.heatmap-card summary::-webkit-details-marker { display: none; }
+.heatmap-card summary::before { content: '\25B8'; color: var(--text-light); font-size: 0.78rem; margin-right: 0.5rem; transition: transform 0.2s; display: inline-block; }
+.heatmap-card[open] summary::before { transform: rotate(90deg); }
+.heatmap-target { font-weight: 700; color: var(--navy); }
+.heatmap { width: 100%; border-collapse: separate; border-spacing: 4px; padding: 0 1rem 1rem; font-size: 0.88rem; }
+.heatmap th { padding: 0.4rem; text-align: center; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.heatmap th.row-header { text-align: right; font-size: 0.85rem; color: var(--text); font-weight: 700; text-transform: none; letter-spacing: 0; padding-right: 0.8rem; line-height: 1.3; }
+.heatmap td { padding: 0; }
+.heat-cell { display: block; padding: 0.6rem 0.4rem; border-radius: 6px; font-weight: 700; font-size: 1.05rem; line-height: 1.1; text-align: center; }
+.heat-cell .sub { display: block; font-size: 0.7rem; font-weight: 500; opacity: 0.8; margin-top: 2px; }
+.heat-legend { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; margin: 0 2px; }
+.legend { font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem; }
+
+/* === PILLS === */
+.pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.74rem; font-weight: 700; line-height: 1.4; }
+.pill-good { background: #dcfce7; color: #166534; }
+.pill-ok   { background: #fef9c3; color: #854d0e; }
+.pill-warn { background: #ffedd5; color: #9a3412; }
+.pill-bad  { background: #fee2e2; color: #991b1b; }
+.pill-dim  { background: #f1f5f9; color: var(--text-light); }
+.pill-row { display: inline-flex; gap: 4px; margin-left: auto; }
+
+/* === ATTACK DRILLDOWNS === */
+.attack-drilldowns { margin: 1.5rem 0; }
+.attack-card { margin-bottom: 0.6rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-sidebar); overflow: hidden; }
+.attack-card[open] { background: white; }
+.attack-card summary { padding: 0.7rem 1rem; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.attack-card summary::-webkit-details-marker { display: none; }
+.attack-card summary::before { content: '\25B8'; color: var(--text-light); font-size: 0.78rem; transition: transform 0.2s; flex-shrink: 0; }
+.attack-card[open] summary::before { transform: rotate(90deg); }
+.attack-id { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.86rem; color: var(--navy); }
+.attack-body { padding: 0.5rem 1rem 1.2rem; }
+.attack-body .dim { color: var(--text-light); font-size: 0.92rem; line-height: 1.55; margin-bottom: 0.7rem; }
+.attack-payload { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.7rem 0.9rem; max-height: 240px; overflow-y: auto; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.78rem; line-height: 1.55; white-space: pre-wrap; color: var(--text); margin: 0.4rem 0; }
+.attack-payload.response { background: #f1f5f9; }
+.danger-tag { display: inline-block; font-size: 0.66rem; color: #991b1b; padding: 2px 7px; background: #fee2e2; border-radius: 4px; font-weight: 700; letter-spacing: 0.04em; }
+.danger-tag-row { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.3rem; }
+
+/* === TAKEAWAYS callout === */
+.takeaways {
+    border-left: 4px solid #059669;
+    background: rgba(5, 150, 105, 0.06);
+    padding: 1rem 1.5rem;
+    margin: 2rem 0 1rem 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.95rem;
+}
+.takeaways > p:first-child {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #047857;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.6rem;
+}
+.takeaways ul { margin-top: 0.5rem; margin-bottom: 0; padding-left: 1.2rem; }
+.takeaways li { margin-bottom: 0.4rem; }
+
+/* === DISCUSSION QUESTIONS callout === */
+.discussion {
+    border-left: 4px solid #7c3aed;
+    background: rgba(124, 58, 237, 0.05);
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0 1rem 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.95rem;
+}
+.discussion > p:first-child {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #6d28d9;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.6rem;
+}
+.discussion ol { margin-top: 0.5rem; margin-bottom: 0; padding-left: 1.4rem; }
+.discussion li { margin-bottom: 0.6rem; }
+
+/* === CHECKLIST callout === */
+.checklist {
+    border-left: 4px solid var(--accent);
+    background: rgba(59, 130, 246, 0.05);
+    padding: 1rem 1.5rem;
+    margin: 2rem 0 1rem 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.95rem;
+}
+.checklist > p:first-child {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.6rem;
+}
+.checklist ul { list-style: none; padding-left: 0; margin-top: 0.5rem; margin-bottom: 0; }
+.checklist li { margin-bottom: 0.4rem; padding-left: 1.5rem; position: relative; }
+.checklist li::before { content: '\2610'; position: absolute; left: 0; color: var(--text-light); font-size: 1rem; }
+
+.warn { color: #9a3412; font-style: italic; }
+
 @media (max-width: 900px) {
     #sidebar { transform: translateX(-100%); }
     #sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.15); }
@@ -381,6 +501,19 @@ DANGER_RE = re.compile(
     r'<blockquote>\s*<p><strong>Adversarial test material follows\.?</strong>(.*?)</blockquote>',
     re.DOTALL,
 )
+TAKEAWAYS_RE = re.compile(
+    r'<blockquote>\s*<p><strong>Key takeaways</strong>(.*?)</blockquote>',
+    re.DOTALL,
+)
+DISCUSSION_RE = re.compile(
+    r'<blockquote>\s*<p><strong>Discussion questions?</strong>(.*?)</blockquote>',
+    re.DOTALL,
+)
+CHECKLIST_RE = re.compile(
+    r'<blockquote>\s*<p><strong>Diagnostic checklist</strong>(.*?)</blockquote>',
+    re.DOTALL,
+)
+INSERT_RE = re.compile(r'<!--\s*INSERT:\s*([a-z_]+)\s*-->')
 
 
 def transform_callouts(html):
@@ -392,7 +525,29 @@ def transform_callouts(html):
         lambda m: f'<aside class="danger-notice"><p><strong>Adversarial test material</strong>{m.group(1)}</aside>',
         html,
     )
+    html = TAKEAWAYS_RE.sub(
+        lambda m: f'<aside class="takeaways"><p><strong>Key takeaways</strong>{m.group(1)}</aside>',
+        html,
+    )
+    html = DISCUSSION_RE.sub(
+        lambda m: f'<aside class="discussion"><p><strong>Discussion questions</strong>{m.group(1)}</aside>',
+        html,
+    )
+    html = CHECKLIST_RE.sub(
+        lambda m: f'<aside class="checklist"><p><strong>Diagnostic checklist</strong>{m.group(1)}</aside>',
+        html,
+    )
     return html
+
+
+def render_inserts(html, runs):
+    """Replace `<!-- INSERT: name -->` directives with rendered viz fragments."""
+    from . import viz
+
+    def _sub(match):
+        name = match.group(1)
+        return viz.render_directive(name, runs)
+    return INSERT_RE.sub(_sub, html)
 
 
 def md_to_html(text):
@@ -405,6 +560,13 @@ def md_to_html(text):
 
 
 def build():
+    from . import data as data_mod
+    runs = data_mod.discover_runs()
+    print(f"Loaded {len(runs)} run JSON(s):")
+    for r in runs:
+        m = r["data"]["meta"]
+        print(f"  - {os.path.basename(r['path'])}  target={m['target_model']}  trials={m['n_trials']}")
+
     files = get_chapter_files()
     chapters = []
 
@@ -413,19 +575,43 @@ def build():
             content = fh.read().strip()
         title = extract_title(content) or os.path.basename(f).replace(".md", "").replace("_", " ")
         html_content = md_to_html(content)
+        html_content = render_inserts(html_content, runs)
         ch_id = make_id(title)
         chapters.append((title, ch_id, html_content))
 
-    # Sidebar nav: chapter 0 (cover) keeps its title, later chapters get "N. Title"
+    # Determine kind of each file: cover (i==0), chapter (numeric prefix), appendix (letter prefix).
+    file_kinds = []
+    chapter_n = 0
+    for i, f in enumerate(files):
+        prefix = os.path.basename(f).split("_", 1)[0]
+        if i == 0:
+            file_kinds.append(("cover", None))
+        elif prefix.isdigit():
+            chapter_n += 1
+            file_kinds.append(("chapter", chapter_n))
+        else:
+            file_kinds.append(("appendix", prefix))
+
+    # Sidebar nav
     nav_items = []
-    for i, (title, ch_id, _) in enumerate(chapters):
-        label = title if i == 0 else f"{i}. {title}"
+    for (kind, marker), (title, ch_id, _) in zip(file_kinds, chapters):
+        if kind == "cover":
+            label = title
+        elif kind == "chapter":
+            label = f"{marker}. {title}"
+        else:
+            label = f"Appendix {marker} — {title}"
         nav_items.append(f'<li><a href="#{ch_id}">{label}</a></li>')
     nav_html = "\n".join(nav_items)
 
     sections = []
-    for i, (title, ch_id, html_content) in enumerate(chapters):
-        ch_num = "" if i == 0 else f'<div class="chapter-number">Chapter {i}</div>'
+    for (kind, marker), (title, ch_id, html_content) in zip(file_kinds, chapters):
+        if kind == "cover":
+            ch_num = ""
+        elif kind == "chapter":
+            ch_num = f'<div class="chapter-number">Chapter {marker}</div>'
+        else:
+            ch_num = f'<div class="chapter-number">Appendix {marker}</div>'
         sections.append(f'''
         <section class="chapter" id="{ch_id}">
             {ch_num}
@@ -476,4 +662,14 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    # When invoked as a script, allow relative imports by ensuring the parent
+    # of this file's directory is on sys.path and re-import via package name.
+    if __package__ in (None, ""):
+        import sys
+        _src = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # …/booklet/_src
+        if _src not in sys.path:
+            sys.path.insert(0, _src)
+        from tools import build_html as _self  # noqa
+        _self.build()
+    else:
+        build()

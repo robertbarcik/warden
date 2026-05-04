@@ -1,39 +1,30 @@
 # Results
 
-A 560-trial sweep, twenty minutes of wall-clock, twenty US cents of OpenRouter credit. No retried trials, no errors. Numbers below are direct from `results/run-20260504-121647.json`.
+Three sweeps, three open-weight target models, the same twenty attacks and the same four rules. The hypothesis introduced in [Chapter 1](#the-hypothesis) was: *a well-established LLM-as-judge can intercept most public attacks before they breach a deployment's rules.* The numbers below are pulled directly from the run JSONs in `results/`. They do not flatter the hypothesis or the judge — but on this corpus, against these targets, **the hypothesis holds**.
 
-## The headline
+## Headline numbers
 
-| | Baseline (no judge) | Best practical judge |
-|---|---|---|
-| Attack-success rate (ASR) | **20.0%** | **0.0%** *(J1-output)* / **1.2%** *(J2-output)* |
-| Attempts that violated the rule | 16 / 80 | 0 / 80 / 1 / 80 |
+<!-- INSERT: stat_boxes -->
 
-The hypothesis introduced in Chapter 1 was: *a well-established LLM-as-judge can intercept most public attacks before they breach a deployment's rules.* On these twenty attacks, against these four rules, with this target and this judge, **the hypothesis holds** — every judge variant tested drives ASR from 20% down toward zero.
+The first row is the original DeepSeek Chat v3.1 sweep that opened the experiment. The second is the newer DeepSeek v3.2 (same family, larger). The third is GLM-4.6 (different family, different vendor). The judge model is held constant across all three runs (`qwen/qwen3-235b-a22b-2507`) so the only variable is target capability.
 
-That is the easy half of the story. The harder half is in the false-positive rates and the per-attack breakdown.
+The pattern across all three: **baseline ASR in the 15–25% range; with the practical-sweet-spot judge configuration, ASR collapses below 2%; FP rate stays in the 10–15% band**. The headline finding is consistent across families.
 
-## The full matrix
+## The full matrix, per target
 
-ASR by rule × condition. Each cell is the share of attacks under that condition that succeeded in violating the rule. Lower is better for the defender.
+ASR by rule × condition, one heatmap per target. Lower is better for the defender. The first heatmap is expanded by default; the others are collapsed — click to expand.
 
-| Condition | R1 secret | R2 persona | R3 topic | R4 tool |
-|-----------|-----------|------------|----------|---------|
-| **J0 — no judge** | 10.0% | 25.0% | 40.0% | 5.0% |
-| J1 input-side | 0.0% | 0.0% | 0.0% | 0.0% |
-| J1 output-side | 0.0% | 0.0% | 0.0% | 0.0% |
-| J2 input-side | 0.0% | 0.0% | 0.0% | 0.0% |
-| J2 output-side | 0.0% | 5.0% | 0.0% | 0.0% |
-| J3 input-side | 0.0% | 5.0% | 5.0% | 0.0% |
-| J3 output-side | 0.0% | 0.0% | 0.0% | 0.0% |
+<!-- INSERT: heatmap_matrix -->
 
-Three observations from the matrix alone, before we look at false positives:
+A few observations that hold across all three targets:
 
 1. **R3 (topic boundary) was the weakest at baseline — 40% ASR.** The cooking-bot rule is harder to defend than the secret rule because the rule itself is fuzzier. *"Stay strictly on cooking"* invites edge cases (a recipe that mentions chemistry; a question about the history of a dish), and the model is cooperative by default. R3 is also the rule most likely to be deployed in the real world for vertical assistants.
 2. **R2 (persona) was the second-weakest — 25% ASR.** Persona rules are hard to enforce when the attacker exploits the model's helpfulness gradient. *"Tell me one thing AcmeCorp is bad at"* is a request the cooperative-by-default model wants to engage with.
 3. **R4 (tool boundary) was strong — 5% ASR.** Asking the model to invoke a forbidden function is a clear, explicit violation. Modern models recognize the structure and refuse. The single 5% breakage was an attack where the target signalled intent without actually emitting the tool-call syntax.
 
 R1 surprised us slightly with 10% baseline ASR — earlier smaller pilot runs showed 0%. The variance is sampling noise: temperature 0.7 means the same attack does not always produce the same target response, so an attack that succeeds 1 time in 4 has a non-trivial chance of looking like 0% in a smaller sample. It is also a useful reminder that *one-shot demonstrations of jailbreak success are not statistical evidence.* The same attack that "always" works in a viral demo may succeed less than half the time in repeated trials.
+
+The reference target — `deepseek/deepseek-chat-v3.1` — is the basis for the per-attack and per-condition tables in the rest of this chapter. Where the other two targets diverge, the *Cross-target divergences* subsection at the end calls it out specifically.
 
 ## False positives — the part that matters in production
 
@@ -59,7 +50,7 @@ The conditions worth deploying live in the bottom half of that table. They are *
 - **J3 output-side (Omniguard)** — *0.0% ASR, 32.8% FP rate.* Caught every single attack, at the cost of blocking roughly a third of attacks the target would have refused anyway. Notice the trade: zero leakage, more friction. For a deployment where any leak is unacceptable, this is the safer pick. For a deployment where user-experience friction is the binding constraint, J2-output is the better one. Neither is wrong.
 - **J1 output-side** — *0.0% ASR, 34.4% FP rate.* Comparable to J3-output but with a tiny prompt instead of Omniguard's 21 KB. The cheapest "catch everything" option; the FP rate sits in the same band as Omniguard.
 
-So which is the *best?* It depends what you optimize for. A reasoning judge tailored to the deployment rule (J2-output) wins on FP and on context cost. A guardrail prompt designed to catch broadly (J3-output Omniguard, or J1-output as a cheaper variant) wins on ASR. The booklet's deployment recommendation in Chapter 7 names the conditions under which each choice is the right one.
+So which is the *best?* It depends what you optimize for. A reasoning judge tailored to the deployment rule (J2-output) wins on FP and on context cost. A guardrail prompt designed to catch broadly (J3-output Omniguard, or J1-output as a cheaper variant) wins on ASR. The booklet's deployment recommendation in Chapter 8 names the conditions under which each choice is the right one.
 
 A common misread of this table is *"J2 beats Omniguard."* It does, on the metric J2 is optimized for (low FP against this specific rule). On a generic deployment where the rules aren't known in advance — for instance a public-facing chatbot where you can't pre-write a tailored judge prompt — Omniguard's broader prior is what you'd want. ZetaLib publishes Omniguard for that use case, and it does that job correctly. The numbers above are *not* a refutation of Omniguard; they are a measurement of two different defenses doing two slightly different jobs against the same corpus.
 
@@ -95,6 +86,22 @@ The single J2-output failure was on R2 (persona). The attack succeeded in nudgin
 
 The two J3-input failures were one R2 and one R3, both with the Omniguard prompt at input side. Omniguard's prompt is opinionated about what counts as worth blocking, and in these two cases it deemed the input acceptable when the bespoke rules were stricter than its built-in opinions. The misalignment between Omniguard's prior and the deployment rule produced false negatives on input.
 
+## Failure-modes catalog
+
+Across all three sweeps, four distinct kinds of judge mistake show up. Naming them lets a deployer recognize them in shadow logs.
+
+**1. Under-protection.** The judge softens the deployment rule. The response satisfies the *literal letter* of the rule but violates its *spirit*, and the judge reads the literal letter. The single J2-output R2 leak is the canonical example — the rule said "never criticize" and the judge softened it to "never criticize and recommend competitors." Symptomatic of a tailored judge meeting a too-loose rule wording. Mitigation: tighten the rule, or pair the judge with a deterministic detector that catches the literal patterns.
+
+**2. Over-protection.** The judge blocks legitimate inputs because they have surface features of an attack — long structured documents, fenced code blocks, multi-language content, mention of "system" or "admin." Input-side classifier judges (J1-input, J2-input) at 100% FP rate are the extreme of this failure mode. Mitigation: move the judge to output-side; use a reasoning prompt that explicitly distinguishes adversarial framing from adversarial intent.
+
+**3. Prior conflict.** A generic guardrail's built-in priors disagree with the deployment-specific rule. Omniguard at input-side produced two failures on R2/R3 because the inputs looked acceptable by Omniguard's general standards but violated the bespoke rules. Mitigation: when the deployment has a known specific rule, prefer a tailored judge over a generic guardrail (see [Chapter 8 Section 1](#defenses-for-deployers)).
+
+**4. Encoding blindness.** The judge treats encoded payloads (base64, ROT13, zero-width-Unicode, regional-indicator-character disguised text) as opaque content rather than decoding and evaluating. *Not observed in this experiment* — the open-weight target decoded all encoded attacks and refused on the underlying content, and the judge had nothing to evaluate. But this is the most-likely failure mode against weaker / smaller targets, and it is where smaller-model judges fail most consistently. Mitigation: in a deployment with a smaller target, add a separate decoding pre-pass before the judge sees the input.
+
+## Cross-target divergences
+
+<!-- INSERT: cross_target_notes -->
+
 ## Cost and reproducibility
 
 Total: 560 trials, $0.1935 spent, 1176.5 seconds wall-clock (~19.6 minutes), 0 errors. The full per-trial JSON is in `results/run-20260504-121647.json` and is small enough to commit (under 3 MB). Re-running the experiment is one command:
@@ -103,6 +110,16 @@ Total: 560 trials, $0.1935 spent, 1176.5 seconds wall-clock (~19.6 minutes), 0 e
 warden run
 ```
 
-The HTML report at `results/report.html` is generated from the same JSON and reflects the numbers in this chapter. If you want to test a different judge prompt, modify `src/warden/judges.py` and re-run; if you want a different target rule, modify `src/warden/rules.py`. The framework is not opinionated about either.
+If you want to test a different judge prompt, modify `src/warden/judges.py` and re-run; if you want a different target rule, modify `src/warden/rules.py`. The framework is not opinionated about either. [Appendix C](#appendix-c-reproduce-this) walks through the customization in detail.
 
 The next chapter turns these numbers into a deployment recommendation.
+
+> **Key takeaways**
+> - The 20% baseline ASR collapses to 0–1.2% across every judge variant tested. The hypothesis holds: a competent judge defeats almost every public single-turn attack against an instruction-hierarchy rule.
+> - Input-side judges with naïve prompts have **100% block rates and 100% false-positive rates** — they are unusable in production because they kill UX for legitimate users. Output-side judges run at 25–44% block rates with 12–34% FP rates.
+> - The practical sweet spot is the *tailored reasoning judge on the output side* (J2-output): 1.2% ASR with 12.5% FP rate. The trade-off curve is real — guarantees of zero leakage cost more FP, and vice versa.
+
+> **Discussion questions**
+> 1. The single J2-output leak quoted in this chapter shows the judge ALLOWing a response that the deterministic detector flagged as a violation. Read the judge's reasoning. Do you agree with the judge or with the detector? Why?
+> 2. Imagine you're choosing between J2-output (1.2% ASR, 12.5% FP) and J1-output (0% ASR, 34.4% FP). For your specific deployment context, which is the right call? Sketch the deployment scenario in 2 sentences and justify the choice.
+> 3. The named "famous" jailbreaks (DAN 6.0 Grok especially) all had 0% baseline ASR — they no longer work on modern frontier-class open-weight models. The *unnamed* shorter attacks (system mimicry, delimiter injection, refusal suppression) are the ones still effective. What does that tell you about how to read viral jailbreak demos in 2026?

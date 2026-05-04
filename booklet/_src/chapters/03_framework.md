@@ -2,7 +2,7 @@
 
 Warden is roughly six hundred lines of Python plus an attack corpus and a couple of HTML templates. The size matters: a small framework makes the experimental design legible, which means anyone who disagrees with the conclusion can re-run with different attacks, different rules, or different judge designs and see for themselves.
 
-This chapter walks through the architecture, the way attacks are composed against rules, the four judge variants, and the OpenRouter execution path. Chapter 5 covers the four judge prompt designs in detail. Chapter 6 reports what fell out.
+This chapter walks through the architecture, the way attacks are composed against rules, the four judge variants, and the OpenRouter execution path. Chapter 6 covers the four judge prompt designs in detail. Chapter 7 reports what fell out.
 
 ## The four moving parts
 
@@ -70,7 +70,7 @@ The target receives the rule's system prompt, then the rendered attack payload a
 
 The judge runs at `temperature=0.0` for stable verdicts. It is asked for up to 400 completion tokens, which is enough room for a reasoning judge to write a paragraph and emit `VERDICT: ALLOW` or `VERDICT: BLOCK`.
 
-The four judge prompt designs are detailed in Chapter 5. They are:
+The four judge prompt designs are detailed in Chapter 6. They are:
 
 - **J0** — no judge (baseline)
 - **J1** — simple classifier (one-shot ALLOW/BLOCK)
@@ -104,3 +104,13 @@ A full sweep — 560 trials, 20 attacks × 4 rules × 7 conditions — completes
 Every trial's full state — the rendered input, the target response, the judge's reasoning text, the verdicts, the token counts, the latency — is saved to a single JSON file in `results/`. The HTML report and the booklet results chapter both read from that file. Re-running the same sweep with different judges, different rules, or a different target is one CLI invocation.
 
 > **Distinctness from the sibling repos.** GeoBias measures geopolitical bias across a panel of models. SelfJudge tests whether small models can judge their own outputs. Bloom does multi-turn red-teaming with an attacker LLM that adapts. Warden does single-turn attack-vs-static-judge evaluation against four representative deployment rules. The four projects share an HTML-report aesthetic and a Python skeleton; their experimental questions do not overlap.
+
+> **Key takeaways**
+> - One trial = (attack × rule × condition); 7 conditions per (attack, rule) pair = 1 baseline + 3 judges × 2 placements; one full sweep = 20 attacks × 4 rules × 7 conditions = 560 trials per target.
+> - Rule violations are detected deterministically (substring/regex/keyword), not by an LLM scorer. This isolates judge behavior as the only variable and keeps results reproducible without an extra confound.
+> - Concurrency is `asyncio.Semaphore + gather()` lifted from bloom; single-turn flow makes each trial 1–3 LLM calls. A full sweep on an open-weight target costs roughly $0.20 and finishes in 20 minutes.
+
+> **Discussion questions**
+> 1. The framework runs at temperature 0.7 for the target and 0.0 for the judge. What's the trade-off captured by that choice? When might you want it inverted, and what would the experimental cost be?
+> 2. Why does the booklet recommend a *deterministic* violation detector instead of using an LLM-as-judge to score whether the rule was violated? What confound does the deterministic detector eliminate? When would an LLM scorer be the right call instead?
+> 3. The judge model (Qwen 235B) is larger than the target (DeepSeek Chat v3.1). Why is that the recommended direction? What goes wrong if the judge is *less* capable than the target?

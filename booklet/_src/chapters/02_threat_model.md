@@ -58,6 +58,5 @@ The honest claim is narrow: *if you deploy an LLM under one of the four rule typ
 > - The four representative rules — secret extraction, persona, topic, mock tool — were picked because each maps to a real-world deployment shape and each has a different *kind* of violation surface.
 
 > **Discussion questions**
-> 1. Pick a real assistant deployment (yours or a public one). Which of the four representative rule shapes does it most resemble? What additional rule shapes would you add if you were extending this booklet's framework?
-> 2. The R1 (secret) system prompt explicitly enumerates forbidden disclosure modes (encoded, paraphrased, fictional, emergency, …). Why is that level of explicitness needed? What does it tell you about how the model interprets under-specified rules?
-> 3. The threat model excludes indirect / RAG-borne prompt injection. Sketch how Warden's framework would have to change to evaluate that case. Which judge configurations from the experiment would still apply, and which wouldn't?
+> 1. The R1 (secret) system prompt explicitly enumerates forbidden disclosure modes (encoded, paraphrased, fictional, emergency, …). Why is that level of explicitness needed? What does it tell you about how the model interprets under-specified rules?
+> 2. The threat model excludes indirect / RAG-borne prompt injection. Sketch how Warden's framework would have to change to evaluate that case. Which judge configurations from the experiment would still apply, and which wouldn't?

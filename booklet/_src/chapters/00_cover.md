@@ -30,28 +30,23 @@ The book is built around a 560-trial evaluation against four representative depl
 
 The audience is assumed to know what an LLM is, what a system prompt is, and what *prompt injection* and *roleplay jailbreak* refer to. The booklet does not introduce these concepts; it assumes them and proceeds.
 
-### How to read this booklet
-
-Chapter 1 sets up the hypothesis and the framing. Chapter 2 names the threat model precisely (instruction-hierarchy adherence, not trained refusal). Chapter 3 walks through the framework's architecture. Chapter 4 describes the twenty attacks. Chapter 5 walks through two end-to-end trials in detail. Chapter 6 walks through the four judge variants. Chapter 7 reports what fell out of the run. Chapter 8 turns the numbers into a deployment playbook. Chapter 9 handles the credits and limitations. Three appendices follow: a glossary, hands-on exercises against the raw run data, and a "reproduce this with your own deployment" walkthrough.
-
-Each chapter ends with a *Key takeaways* callout (three bullets) and a *Discussion questions* callout. Use the takeaways for review or skim; use the discussion questions for application — pick one and try answering it against an LLM deployment you've worked on.
-
-If you are an engineering team trying to make a deployment decision *today*, jump to Chapter 8. If you are a student trying to understand the methodology, read in order. The chapters are short on purpose — the entire booklet is around eighteen thousand words.
-
 ### Table of contents
+
+- *How to read this booklet* — three paths through the material (20-min, 2-hour, deploy-this)
+- *Quick reference* — glossary of terms used throughout
 
 1. The Hypothesis
 2. The Threat Model
 3. The Framework
 4. The Attacks
-5. A Trial in Detail
-6. The Judges
+5. The Judges
+6. A Trial in Detail
 7. Results
 8. Defenses for Deployers
 9. Acknowledgments and Limitations
-- Appendix A — Glossary
-- Appendix B — Exercises
-- Appendix C — Reproduce This
+
+- Appendix A — Exercises
+- Appendix B — Reproduce This
 
 ---
 

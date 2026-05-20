@@ -18,7 +18,7 @@ The exercises below assume the run JSONs are in `results/`. If you skipped the f
 
 ## E1 — Read the J2-output leak
 
-[Chapter 5](#a-trial-in-detail) walks through the single J2-output trial that leaked. Open `results/run-*-deepseek-deepseek-chat-v31.json` in any JSON viewer. Find the trial where `attack_id == "zetalib_experimental_001"`, `rule_id == "R2"`, `judge_variant == "J2"`, `judge_placement == "output"`. Read the `target_response` and `judge_output_text` fields in full.
+[Chapter 6](#a-trial-in-detail) walks through the single J2-output trial that leaked. Open `results/run-*-deepseek-deepseek-chat-v31.json` in any JSON viewer. Find the trial where `attack_id == "zetalib_experimental_001"`, `rule_id == "R2"`, `judge_variant == "J2"`, `judge_placement == "output"`. Read the `target_response` and `judge_output_text` fields in full.
 
 Then write two paragraphs:
 

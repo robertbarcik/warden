@@ -2,7 +2,7 @@
 
 Warden is roughly six hundred lines of Python plus an attack corpus and a couple of HTML templates. The size matters: a small framework makes the experimental design legible, which means anyone who disagrees with the conclusion can re-run with different attacks, different rules, or different judge designs and see for themselves.
 
-This chapter walks through the architecture, the way attacks are composed against rules, the four judge variants, and the OpenRouter execution path. Chapter 6 covers the four judge prompt designs in detail. Chapter 7 reports what fell out.
+This chapter walks through the architecture, the way attacks are composed against rules, the four judge variants, and the OpenRouter execution path. [Chapter 5](#the-judges) covers the four judge prompt designs in detail. [Chapter 7](#results) reports what fell out.
 
 ## The four moving parts
 
@@ -70,7 +70,7 @@ The target receives the rule's system prompt, then the rendered attack payload a
 
 The judge runs at `temperature=0.0` for stable verdicts. It is asked for up to 400 completion tokens, which is enough room for a reasoning judge to write a paragraph and emit `VERDICT: ALLOW` or `VERDICT: BLOCK`.
 
-The four judge prompt designs are detailed in Chapter 6. They are:
+The four judge prompt designs are detailed in [Chapter 5](#the-judges). They are:
 
 - **J0** — no judge (baseline)
 - **J1** — simple classifier (one-shot ALLOW/BLOCK)

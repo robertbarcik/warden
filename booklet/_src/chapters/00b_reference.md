@@ -1,6 +1,6 @@
-# Glossary
+# Quick reference
 
-The terms below appear repeatedly in the booklet and in the framework code. This is the smallest list that lets you read the whole thing without having to infer definitions from context.
+The terms below appear repeatedly in the booklet and in the framework code. This is the smallest list that lets you read the whole thing without having to infer definitions from context — flip back to this page if a term turns up unexplained.
 
 **Adversarial input.** A user message crafted to make the model violate one of its rules. Not necessarily malicious in intent (a security tester writes them all the time), but always *not* the kind of input the model was nominally trained for.
 

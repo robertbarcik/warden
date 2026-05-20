@@ -579,7 +579,8 @@ def build():
         ch_id = make_id(title)
         chapters.append((title, ch_id, html_content))
 
-    # Determine kind of each file: cover (i==0), chapter (numeric prefix), appendix (letter prefix).
+    # Determine kind of each file: cover (i==0), front-matter (mixed digit+letter prefix
+    # like "00a", "00b"), chapter (pure-digit prefix), appendix (pure-letter prefix).
     file_kinds = []
     chapter_n = 0
     for i, f in enumerate(files):
@@ -589,13 +590,16 @@ def build():
         elif prefix.isdigit():
             chapter_n += 1
             file_kinds.append(("chapter", chapter_n))
-        else:
+        elif prefix.isalpha():
             file_kinds.append(("appendix", prefix))
+        else:
+            # Mixed (e.g. "00a") → unnumbered front-matter page.
+            file_kinds.append(("frontmatter", None))
 
     # Sidebar nav
     nav_items = []
     for (kind, marker), (title, ch_id, _) in zip(file_kinds, chapters):
-        if kind == "cover":
+        if kind == "cover" or kind == "frontmatter":
             label = title
         elif kind == "chapter":
             label = f"{marker}. {title}"
@@ -606,7 +610,7 @@ def build():
 
     sections = []
     for (kind, marker), (title, ch_id, html_content) in zip(file_kinds, chapters):
-        if kind == "cover":
+        if kind == "cover" or kind == "frontmatter":
             ch_num = ""
         elif kind == "chapter":
             ch_num = f'<div class="chapter-number">Chapter {marker}</div>'

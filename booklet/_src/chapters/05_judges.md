@@ -123,6 +123,7 @@ A few things deliberately not in the picture:
 - **A small-model judge.** Smaller open-weight models (Qwen 3.5 9B, Qwen 3-30B-A3B, Llama 3.1 8B) would be cheaper but presumably less capable; the trade-off curve is interesting and not measured here.
 - **Ensemble judges.** Running J1, J2, and J3 in parallel and BLOCKing if any of them does. Probably stronger than any single judge. Probably too expensive for many production settings. Worth measuring; not measured here.
 - **Adaptive attacks against the judge prompt itself.** All twenty attacks were authored or selected without sight of the judge prompts. An attacker who optimized specifically against the judge would do better. Real but out of scope.
+- **Sequential input-prefilter plus output-judge pipelines.** The common production shape — a cheap classifier screens the input first, and only requests that pass go on to an output-side reasoning judge — is not tested here. Warden runs each judge variant at one placement at a time; it does not measure a chained input-then-output pipeline.
 
 The next chapter reports the numbers. Then [Chapter 8](#defenses-for-deployers) says, given those numbers, what to deploy.
 

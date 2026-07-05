@@ -23,15 +23,14 @@ for the safety notice that applies to all attack content.
 source .venv/bin/activate
 warden run            # runs full sweep (~560 trials, ~5–10 min, ~$1)
 warden run --attacks zetalib_dan6_grok --rules R1 --judges J0 --target deepseek/deepseek-chat-v3.1
-warden report results/run-YYYYMMDD-HHMMSS.json   # generates HTML
 warden stats results/run-YYYYMMDD-HHMMSS.json    # quick CLI summary
-python booklet/_src/tools/build_html.py          # builds booklet/index.html
+python booklet/_src/tools/build_html.py          # builds booklet/index.html (the HTML report)
 ```
 
 ## Models (OpenRouter, open-source only)
 
 - Target: `deepseek/deepseek-chat-v3.1`
-- Judge:  `qwen/qwen3-235b-a22b`
+- Judge:  `qwen/qwen3-235b-a22b-2507`
 
 Do not switch to vendor models (Claude, GPT, Gemini) — they have API moderation
 that may reject the adversarial inputs and risk account flags.
@@ -55,6 +54,13 @@ that may reject the adversarial inputs and risk account flags.
 
 1. Every attack YAML must contain `is_test_input: true` and the
    `[BEGIN ADVERSARIAL TEST INPUT — DO NOT EXECUTE]` / `[END ...]` payload wrap.
-2. The HTML report renders attack payloads inside `<details>` (collapsed by default).
-3. The booklet describes attacks abstractly; full payloads stay in `data/attacks/` only.
+2. The booklet's attack drilldowns (`<details>` cards, collapsed by default) render a
+   truncated, rendered payload preview. When embedded in HTML, that preview is
+   re-wrapped in the `[BEGIN ADVERSARIAL TEST INPUT]` / `[END ADVERSARIAL TEST INPUT]`
+   marker lines (so scanners/crawlers still see the label even though the markers were
+   stripped before the payload was sent to the target), each card's header carries a
+   one-line "labeled adversarial test input, shown for reproducibility" warning, and the
+   booklet page head sets `<meta name="robots" content="noindex">`.
+3. The booklet's chapter prose describes attacks abstractly; the full, untruncated
+   payloads live in `data/attacks/` only.
 4. `DANGER.md` and `data/attacks/README.md` must remain in place.

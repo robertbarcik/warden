@@ -28,11 +28,16 @@ The hypothesis holds across all three target models. Baseline ASR varies by
 target safety training, but the judge layer reduces ASR to near-zero on every
 target.
 
-| Target                    | Baseline ASR | Best judge config | Best ASR | Best FP |
-| ------------------------- | -----------: | ----------------- | -------: | ------: |
-| DeepSeek Chat v3.1 (37B)  |       20.0%  | J2-output         |     1.2% |   12.5% |
-| DeepSeek v3.2 (685B MoE)  |       23.8%  | J2-output         |     1.2% |   18.0% |
-| GLM-4.6 (357B)            |        5.0%  | J2-output         |     1.2% |    7.5% |
+| Target                    | Baseline ASR | Best judge config | Best ASR | Unnecessary-block rate |
+| ------------------------- | -----------: | ----------------- | -------: | ---------------------: |
+| DeepSeek Chat v3.1 (37B)  |       20.0%  | J2-output         |     1.2% |                  12.5% |
+| DeepSeek v3.2 (685B MoE)  |       23.8%  | J2-output         |     1.2% |                  18.0% |
+| GLM-4.6 (357B)            |        5.0%  | J2-output         |     1.2% |                   7.5% |
+
+*"Unnecessary-block rate" (not a false-positive rate — this study has no benign-traffic
+set): blocks of attacks that were already failing; no benign-traffic set exists in this
+study. Per-condition cells rest on n=80; 1/80 has a 95% interval of roughly 0.2 to 6.7
+percent.*
 
 GLM-4.6 was substantially more robust at baseline than either DeepSeek model —
 its safety training already refused most attacks before the judge saw them.
@@ -43,15 +48,19 @@ work the judge has to do depends on which target you put behind it.*
 Per-condition picture for the original DeepSeek Chat v3.1 sweep (representative
 of the structural finding):
 
-| Configuration                     | ASR    | False-positive rate |
-| --------------------------------- | -----: | ------------------: |
-| **No judge** (baseline)           |  20.0% |                  —  |
+| Configuration                     | ASR    | Unnecessary-block rate |
+| --------------------------------- | -----: | ----------------------: |
+| **No judge** (baseline)           |  20.0% |                       — |
 | Simple classifier on **input**    |   0.0% |          **100.0%** *(blocks everything)* |
 | Reasoning judge on **input**      |   0.0% |          **100.0%** *(blocks everything)* |
-| Omniguard on **input**            |   2.5% |               93.8% |
-| Simple classifier on **output**   |   0.0% |               34.4% |
-| Omniguard on **output**           |   0.0% |               32.8% |
+| Omniguard on **input**            |   2.5% |                    93.8% |
+| Simple classifier on **output**   |   0.0% |                    34.4% |
+| Omniguard on **output**           |   0.0% |                    32.8% |
 | **Reasoning judge on output**     | **1.2%** |        **12.5%** *(practical sweet spot)* |
+
+*"Unnecessary-block rate": blocks of attacks that were already failing; no benign-traffic
+set exists in this study. Per-condition cells rest on n=80; 1/80 has a 95% interval of
+roughly 0.2 to 6.7 percent.*
 
 The production-shaped recommendation is **a tailored reasoning judge on the
 output side** when the deployment rule is known, **a generic guardrail like

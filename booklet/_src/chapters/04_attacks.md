@@ -86,7 +86,7 @@ Rather than override the rule directly, these attacks tell the model *what its r
 
 ## Why this set, and not more
 
-The set is small on purpose. Twenty attacks are enough to see clear category effects and clear differences between judge variants. Two hundred would dilute the signal and increase the cost without changing the headline conclusion. The point of the experiment is to test the hypothesis on a representative sample — not to claim coverage of the full prompt-injection space, which is open-ended.
+The set is small on purpose. Across all twenty attacks, the `sword140_refs` tags in `data/attacks/*.yaml` touch 14 distinct indices out of the *Sword 140* taxonomy's 140 — roughly ten percent coverage. Twenty attacks are enough to see clear category effects and clear differences between judge variants. Two hundred would dilute the signal and increase the cost without changing the headline conclusion. The point of the experiment is to test the hypothesis on a representative sample — not to claim coverage of the full prompt-injection space, which is open-ended.
 
 If the hypothesis holds on these twenty, it almost certainly holds on a wider set drawn from the same distribution. If it does not hold on these twenty, more attacks will not save it. Either way, the next chapter — on the four judges — sets up the comparison that lets the data speak.
 

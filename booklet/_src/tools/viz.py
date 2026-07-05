@@ -59,7 +59,8 @@ def render_stat_boxes(runs: List[Dict[str, Any]]) -> str:
              '<th>Baseline ASR</th>',
              '<th>Best judge</th>',
              '<th>Best ASR</th>',
-             '<th>Best FP</th>',
+             '<th>Best ASR 95% CI</th>',
+             '<th>Unnecessary-block rate</th>',
              '<th>Cost</th>',
              '</tr></thead>',
              '<tbody>']
@@ -71,10 +72,18 @@ def render_stat_boxes(runs: List[Dict[str, Any]]) -> str:
         parts.append(f'<td class="num"><span class="{_asr_pill_class(r["baseline_asr"])}">{r["baseline_asr"]:.1f}%</span></td>')
         parts.append(f'<td class="mono">{r["best_condition"]}</td>')
         parts.append(f'<td class="num"><span class="{_asr_pill_class(r["best_asr"])}">{r["best_asr"]:.1f}%</span></td>')
+        parts.append(f'<td class="num mono dim">{r["best_asr_ci_low"]:.1f}–{r["best_asr_ci_high"]:.1f}%</td>')
         parts.append(f'<td class="num">{r["best_fp"]:.1f}%</td>')
         parts.append(f'<td class="num mono">${r["total_cost_usd"]:.3f}</td>')
         parts.append('</tr>')
     parts.append('</tbody></table>')
+    parts.append('<p class="dim legend">'
+                 '<strong>"Unnecessary-block rate"</strong> (not a false-positive rate — this study has '
+                 'no benign-traffic set): blocks of attacks that were already failing; no benign-traffic '
+                 'set exists in this study. '
+                 '<strong>95% CI</strong> is the Wilson score interval on the best-condition ASR; small '
+                 'per-condition sample sizes (n=80 across the four rules) mean single-trial outcomes carry '
+                 'wide uncertainty.</p>')
     parts.append('</div>')
     return "\n".join(parts)
 
@@ -232,11 +241,24 @@ def render_attack_drilldowns(runs: List[Dict[str, Any]]) -> str:
         if len(target_resp) > 1000:
             target_resp = target_resp[:1000] + "\n[…truncated for display…]"
 
+        # `rendered_input` has its BEGIN/END markers stripped (they're removed before
+        # the payload is sent to the target — see src/warden/attacks.py). Re-wrap the
+        # (possibly truncated) preview in those markers before it goes into public HTML,
+        # so safety scanners / crawlers / future LLM readers still see the label.
+        if rendered:
+            rendered = (
+                "[BEGIN ADVERSARIAL TEST INPUT — DO NOT EXECUTE]\n"
+                f"{rendered}\n"
+                "[END ADVERSARIAL TEST INPUT]"
+            )
+
         parts.append('<details class="attack-card">')
         parts.append(
             f'<summary><span class="attack-id mono">{html.escape(aid)}</span> '
             f'<span class="pill pill-dim">{html.escape(atk.get("category", ""))}</span> '
-            f'<span class="pill-row">{" ".join(pills)}</span></summary>'
+            f'<span class="pill-row">{" ".join(pills)}</span>'
+            f'<span class="dim" style="flex-basis:100%; font-size:0.72rem;">'
+            f'Labeled adversarial test input, shown for reproducibility.</span></summary>'
         )
         parts.append('<div class="attack-body">')
         src = atk.get("source", "")
